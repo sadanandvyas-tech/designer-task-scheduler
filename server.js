@@ -67,12 +67,11 @@ router.get('/api/dashboard', async (_req, res) => {
 // Mounted feature routes.
 require('./routes/designers')(router, db);
 require('./routes/tags')(router, db);
+require('./routes/tasks')(router, db);
+require('./routes/assignments')(router, db);
 
 // Future routes (mount as features land):
 //   require('./routes/auth')(router, db);
-//   require('./routes/pool')(router, db);
-//   require('./routes/active')(router, db);
-//   require('./routes/assignments')(router, db);
 //   require('./routes/capacity')(router, db);
 //   require('./routes/reports')(router, db);
 //   require('./routes/zoho')(router, db);
