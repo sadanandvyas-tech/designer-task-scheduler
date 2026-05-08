@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Designer Task Scheduler — Operations Portal</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --line: #e5e7eb;
+    --ink: #1f2937;
+    --muted: #6b7280;
+    --brand: #2563eb;
+    --brand-dark: #1e3a8a;
+    --green: #10b981;
+    --red: #ef4444;
+    --lavender: #f3e8ff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--ink);
+  }
+  header.app {
+    background: linear-gradient(90deg, var(--brand-dark), var(--brand));
+    color: #fff; padding: 18px 24px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  header.app h1 { margin: 0; font-size: 20px; font-weight: 600; }
+  header.app a { color: #fff; text-decoration: none; font-size: 13px; opacity: 0.9; }
+  main { max-width: 720px; margin: 40px auto; padding: 24px; }
+  .hero {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 28px 32px; text-align: center;
+  }
+  .hero .emoji { font-size: 42px; }
+  .hero h2 { margin: 12px 0 4px; font-size: 22px; }
+  .hero p { color: var(--muted); margin: 6px 0 18px; }
+  .health {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 14px; border-radius: 20px;
+    font-size: 13px; font-weight: 500;
+  }
+  .health.ok      { background: #d1fae5; color: #065f46; }
+  .health.err     { background: #fee2e2; color: #b91c1c; }
+  .health.loading { background: #e5e7eb; color: #374151; }
+  .health .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .health.ok .dot      { background: var(--green); }
+  .health.err .dot     { background: var(--red); }
+  .health.loading .dot { background: var(--muted); animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+  .build-progress {
+    margin-top: 22px; text-align: left; background: #f9fafb;
+    border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px;
+    font-size: 13px;
+  }
+  .build-progress h3 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+  .build-progress ul { margin: 0; padding-left: 20px; }
+  .build-progress li { padding: 2px 0; color: var(--muted); }
+  .build-progress li.done { color: var(--green); }
+  .build-progress li.done::before { content: '✓ '; }
+  .build-progress li.next { color: var(--brand); font-weight: 600; }
+  .build-progress li.next::before { content: '▸ '; }
+  .meta { margin-top: 14px; font-size: 11px; color: var(--muted); }
+  .meta code { background: #f3f4f6; padding: 2px 5px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<header class="app">
+  <h1>🎨 Designer Task Scheduler</h1>
+  <a href="/">← Operations Portal</a>
+</header>
+
+<main>
+  <div class="hero">
+    <div class="emoji">🛠️</div>
+    <h2>Coming soon</h2>
+    <p>Daily task assignment + capacity tracking for the design team.</p>
+    <div id="health" class="health loading"><span class="dot"></span><span id="health-text">Checking backend…</span></div>
+
+    <div class="build-progress">
+      <h3>Build progress</h3>
+      <ul>
+        <li class="done">Phase 1 — Skeleton app + database schema</li>
+        <li class="next">Phase 2 — Designer roster (Settings tab)</li>
+        <li>Phase 3 — Zoho sync + Pool tab</li>
+        <li>Phase 4 — Active tab + Quick-Assign table (incl. ad-hoc tasks)</li>
+        <li>Phase 5 — Capacity views (Today / Week / Kanban)</li>
+        <li>Phase 6 — Aged-yellow + 8 pm rollover logic</li>
+        <li>Phase 7 — Reports / efficiency</li>
+        <li>Phase 8 — Designer public read-only URLs</li>
+      </ul>
+    </div>
+
+    <div class="meta">
+      Mounted at <code>/designer-tasks/</code> ·
+      Sub-app of <code>operation.yotser.in</code>
+    </div>
+  </div>
+</main>
+
+<script>
+  const API = '/designer-tasks';
+
+  async function checkHealth() {
+    const el     = document.getElementById('health');
+    const txtEl  = document.getElementById('health-text');
+    try {
+      const res  = await fetch(`${API}/api/health`);
+      const data = await res.json();
+      if (data.ok) {
+        el.className = 'health ok';
+        txtEl.textContent = `Backend OK · DB time ${new Date(data.db_time).toLocaleTimeString()}`;
+      } else {
+        throw new Error(data.error || 'unknown');
+      }
+    } catch (err) {
+      el.className = 'health err';
+      txtEl.textContent = `Backend error: ${err.message}`;
+    }
+  }
+  checkHealth();
+  setInterval(checkHealth, 15000);
+</script>
+</body>
+</html>
