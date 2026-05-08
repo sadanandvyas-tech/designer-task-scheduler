@@ -14,7 +14,10 @@
     --brand: #2563eb;
     --brand-dark: #1e3a8a;
     --green: #10b981;
+    --green-bg: #d1fae5;
     --red: #ef4444;
+    --red-bg: #fee2e2;
+    --yellow-bg: #fef3c7;
     --lavender: #f3e8ff;
   }
   * { box-sizing: border-box; }
@@ -23,106 +26,449 @@
     font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: var(--bg); color: var(--ink);
   }
+
   header.app {
     background: linear-gradient(90deg, var(--brand-dark), var(--brand));
-    color: #fff; padding: 18px 24px;
+    color: #fff; padding: 14px 24px;
     display: flex; justify-content: space-between; align-items: center;
   }
-  header.app h1 { margin: 0; font-size: 20px; font-weight: 600; }
+  header.app h1 { margin: 0; font-size: 18px; font-weight: 600; }
   header.app a { color: #fff; text-decoration: none; font-size: 13px; opacity: 0.9; }
-  main { max-width: 720px; margin: 40px auto; padding: 24px; }
-  .hero {
+  .who { font-size: 12px; opacity: 0.85; }
+
+  nav.tabs {
+    background: #fff; border-bottom: 1px solid var(--line);
+    display: flex; gap: 4px; padding: 0 24px;
+    position: sticky; top: 0; z-index: 5;
+  }
+  nav.tabs button {
+    padding: 12px 16px; color: var(--muted); background: none; border: 0;
+    border-bottom: 3px solid transparent; font-size: 13px; cursor: pointer;
+    font-family: inherit;
+  }
+  nav.tabs button.active { color: var(--brand); border-color: var(--brand); font-weight: 600; }
+  nav.tabs button:hover:not(.active):not(:disabled) { color: var(--ink); }
+  nav.tabs button:disabled { color: #cbd5e1; cursor: not-allowed; }
+  nav.tabs button .badge {
+    display: inline-block; font-size: 10px; padding: 1px 6px;
+    border-radius: 8px; background: #e5e7eb; color: var(--muted);
+    margin-left: 6px; vertical-align: middle;
+  }
+
+  main { max-width: 1200px; margin: 0 auto; padding: 24px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .panel h2.page-title { font-size: 22px; margin: 0 0 6px; font-weight: 700; }
+  .panel .page-sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+
+  .placeholder {
+    background: var(--card); border: 1px dashed var(--line); border-radius: 12px;
+    padding: 60px 32px; text-align: center;
+  }
+  .placeholder .emoji { font-size: 36px; margin-bottom: 8px; }
+  .placeholder h3 { margin: 0 0 4px; font-size: 16px; }
+  .placeholder p { color: var(--muted); margin: 0; font-size: 13px; }
+
+  /* Settings sections */
+  .section {
     background: var(--card); border: 1px solid var(--line); border-radius: 12px;
-    padding: 28px 32px; text-align: center;
+    padding: 20px 24px; margin-bottom: 16px;
   }
-  .hero .emoji { font-size: 42px; }
-  .hero h2 { margin: 12px 0 4px; font-size: 22px; }
-  .hero p { color: var(--muted); margin: 6px 0 18px; }
+  .section h3 {
+    margin: 0 0 4px; font-size: 13px; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--muted); font-weight: 600;
+  }
+  .section .sub { color: var(--muted); font-size: 12px; margin-bottom: 14px; }
+
+  /* Table */
+  table.std {
+    width: 100%; border-collapse: collapse; background: var(--card);
+    border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+  }
+  table.std th, table.std td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--line); }
+  table.std th { background: #f9fafb; font-size: 11px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.04em; }
+  table.std td { font-size: 13px; }
+  table.std code {
+    background: #f3f4f6; padding: 2px 6px; border-radius: 4px;
+    font: 11px/1 ui-monospace, monospace; color: #374151;
+  }
+  table.std .copy-btn {
+    margin-left: 6px; font-size: 10px; padding: 2px 6px;
+    border: 1px solid var(--line); background: #fff; color: var(--muted);
+    border-radius: 4px; cursor: pointer;
+  }
+  table.std .copy-btn:hover { color: var(--brand); border-color: var(--brand); }
+
+  /* Pills */
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+  .pill.green { background: var(--green-bg); color: #065f46; }
+  .pill.red   { background: var(--red-bg);   color: #b91c1c; }
+  .pill.lav   { background: var(--lavender); color: #6d28d9; }
+  .pill.tag-internal { background: #dbeafe; color: #1e40af; }
+  .pill.tag-rework   { background: #fee2e2; color: #b91c1c; }
+  .pill.tag-training { background: #d1fae5; color: #065f46; }
+  .pill.tag-admin    { background: #f3f4f6; color: #374151; }
+  .pill.tag-meeting  { background: #fef3c7; color: #92400e; }
+  .pill.tag-misc     { background: #ede9fe; color: #5b21b6; }
+
+  /* Buttons */
+  .btn {
+    background: var(--brand); color: #fff; border: 0; padding: 7px 14px;
+    border-radius: 6px; cursor: pointer; font: inherit; font-size: 13px;
+  }
+  .btn.ghost { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+  .btn.danger { background: #fff; color: var(--red); border: 1px solid var(--red); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .icon-btn {
+    border: 1px solid var(--line); background: #fff; padding: 4px 8px;
+    border-radius: 5px; font-size: 12px; cursor: pointer; margin-left: 2px;
+  }
+  .icon-btn.danger { color: var(--red); border-color: var(--red); }
+
+  /* Inline add row */
+  .add-row {
+    background: #fafbff; border: 1px dashed var(--brand); border-radius: 8px;
+    padding: 12px 14px; margin-top: 12px;
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  }
+  .add-row strong { font-size: 13px; color: var(--brand); }
+  .add-row input {
+    padding: 7px 10px; border: 1px solid var(--line); border-radius: 5px;
+    font: inherit; font-size: 13px;
+  }
+  .add-row input.name { flex: 1; min-width: 200px; }
+  .add-row input.pin  { width: 100px; letter-spacing: 0.3em; }
+
+  /* Edit row inline */
+  tr.editing td input {
+    padding: 5px 8px; border: 1px solid var(--brand); border-radius: 4px;
+    font: inherit; font-size: 13px; width: 100%;
+  }
+
+  /* Health pill (footer) */
+  .footer-strip {
+    margin-top: 32px; padding: 14px 0; text-align: center;
+    border-top: 1px solid var(--line); color: var(--muted); font-size: 11px;
+  }
   .health {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 8px 14px; border-radius: 20px;
-    font-size: 13px; font-weight: 500;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 12px;
+    font-size: 11px; font-weight: 500; margin-left: 6px;
   }
-  .health.ok      { background: #d1fae5; color: #065f46; }
-  .health.err     { background: #fee2e2; color: #b91c1c; }
+  .health.ok      { background: var(--green-bg); color: #065f46; }
+  .health.err     { background: var(--red-bg);   color: #b91c1c; }
   .health.loading { background: #e5e7eb; color: #374151; }
-  .health .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .health .dot { width: 6px; height: 6px; border-radius: 50%; }
   .health.ok .dot      { background: var(--green); }
   .health.err .dot     { background: var(--red); }
   .health.loading .dot { background: var(--muted); animation: pulse 1.2s ease-in-out infinite; }
   @keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
-  .build-progress {
-    margin-top: 22px; text-align: left; background: #f9fafb;
-    border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px;
-    font-size: 13px;
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 20px; right: 20px;
+    background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 6px;
+    font-size: 13px; opacity: 0; transition: opacity 0.2s; pointer-events: none;
+    z-index: 100; max-width: 360px;
   }
-  .build-progress h3 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
-  .build-progress ul { margin: 0; padding-left: 20px; }
-  .build-progress li { padding: 2px 0; color: var(--muted); }
-  .build-progress li.done { color: var(--green); }
-  .build-progress li.done::before { content: '✓ '; }
-  .build-progress li.next { color: var(--brand); font-weight: 600; }
-  .build-progress li.next::before { content: '▸ '; }
-  .meta { margin-top: 14px; font-size: 11px; color: var(--muted); }
-  .meta code { background: #f3f4f6; padding: 2px 5px; border-radius: 3px; }
+  .toast.show { opacity: 1; }
+  .toast.error { background: var(--red); }
+  .toast.success { background: var(--green); }
 </style>
 </head>
 <body>
+
 <header class="app">
   <h1>🎨 Designer Task Scheduler</h1>
-  <a href="/">← Operations Portal</a>
+  <div style="display: flex; align-items: center; gap: 16px;">
+    <span class="who">Build phase: <strong>2 of 8 (Designer roster)</strong></span>
+    <a href="/">← Operations Portal</a>
+  </div>
 </header>
 
+<nav class="tabs">
+  <button data-tab="dashboard" disabled>Dashboard <span class="badge">phase 9</span></button>
+  <button data-tab="pool" disabled>Pool <span class="badge">phase 3</span></button>
+  <button data-tab="active" disabled>Active <span class="badge">phase 4</span></button>
+  <button data-tab="capacity" disabled>Capacity <span class="badge">phase 5</span></button>
+  <button data-tab="completed" disabled>Completed <span class="badge">phase 6</span></button>
+  <button data-tab="reports" disabled>Reports <span class="badge">phase 7</span></button>
+  <button data-tab="settings" class="active">Settings</button>
+</nav>
+
 <main>
-  <div class="hero">
-    <div class="emoji">🛠️</div>
-    <h2>Coming soon</h2>
-    <p>Daily task assignment + capacity tracking for the design team.</p>
-    <div id="health" class="health loading"><span class="dot"></span><span id="health-text">Checking backend…</span></div>
 
-    <div class="build-progress">
-      <h3>Build progress</h3>
-      <ul>
-        <li class="done">Phase 1 — Skeleton app + database schema</li>
-        <li class="next">Phase 2 — Designer roster (Settings tab)</li>
-        <li>Phase 3 — Zoho sync + Pool tab</li>
-        <li>Phase 4 — Active tab + Quick-Assign table (incl. ad-hoc tasks)</li>
-        <li>Phase 5 — Capacity views (Today / Week / Kanban)</li>
-        <li>Phase 6 — Aged-yellow + 8 pm rollover logic</li>
-        <li>Phase 7 — Reports / efficiency</li>
-        <li>Phase 8 — Designer public read-only URLs</li>
-      </ul>
+  <!-- Settings -->
+  <section class="panel active" id="panel-settings">
+    <h2 class="page-title">Settings</h2>
+    <div class="page-sub">Designer roster, ad-hoc tags, and Zoho connection (last one coming in Phase 3).</div>
+
+    <!-- Designers -->
+    <div class="section">
+      <h3>Designers</h3>
+      <div class="sub">Add team members here. Each gets a personal read-only URL with a 4-digit PIN. Designers don't log in to this app — they only view their queue.</div>
+
+      <table class="std" id="designer-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Public URL</th>
+            <th>PIN</th>
+            <th>Status</th>
+            <th style="width: 200px;"></th>
+          </tr>
+        </thead>
+        <tbody id="designer-rows">
+          <tr><td colspan="5" style="text-align: center; color: var(--muted); padding: 20px;">Loading…</td></tr>
+        </tbody>
+      </table>
+
+      <div class="add-row">
+        <strong>+ Add designer</strong>
+        <input class="name" id="new-name" type="text" placeholder="Full name (e.g. Aniket Gupta)" maxlength="60" />
+        <input class="pin"  id="new-pin"  type="text" placeholder="4-digit PIN" maxlength="4" inputmode="numeric" pattern="\d{4}" />
+        <button class="btn" id="btn-add">Add</button>
+      </div>
     </div>
 
-    <div class="meta">
-      Mounted at <code>/designer-tasks/</code> ·
-      Sub-app of <code>operation.yotser.in</code>
+    <!-- Tags -->
+    <div class="section">
+      <h3>Ad-hoc task tags</h3>
+      <div class="sub">Tags shown when adding ad-hoc tasks in Active. Editing the list comes in a later phase.</div>
+      <div id="tags-list" style="display: flex; flex-wrap: wrap; gap: 8px;">
+        <span style="color: var(--muted); font-size: 12px;">Loading tags…</span>
+      </div>
     </div>
+
+    <!-- Zoho -->
+    <div class="section">
+      <h3>Zoho connection</h3>
+      <div class="sub">OAuth client + Designing-tag filter. Wired up in Phase 3.</div>
+      <span class="pill red">Not connected yet</span>
+    </div>
+
+  </section>
+
+  <!-- Other tabs (placeholders, disabled in nav for now but rendered if linked) -->
+  <section class="panel" id="panel-dashboard"><div class="placeholder"><div class="emoji">📊</div><h3>Dashboard</h3><p>Tile counts + alerts. Coming in Phase 9.</p></div></section>
+  <section class="panel" id="panel-pool"><div class="placeholder"><div class="emoji">📥</div><h3>Pool</h3><p>Inbox of design-tagged tasks pulled from Zoho. Coming in Phase 3.</p></div></section>
+  <section class="panel" id="panel-active"><div class="placeholder"><div class="emoji">⚡</div><h3>Active — Quick Assign</h3><p>Inline assignment table. Coming in Phase 4.</p></div></section>
+  <section class="panel" id="panel-capacity"><div class="placeholder"><div class="emoji">📅</div><h3>Capacity</h3><p>Today / Week / Kanban views. Coming in Phase 5.</p></div></section>
+  <section class="panel" id="panel-completed"><div class="placeholder"><div class="emoji">✓</div><h3>Completed</h3><p>Done tasks archive. Coming in Phase 6.</p></div></section>
+  <section class="panel" id="panel-reports"><div class="placeholder"><div class="emoji">📈</div><h3>Reports</h3><p>Per-designer efficiency. Coming in Phase 7.</p></div></section>
+
+  <div class="footer-strip">
+    Mounted at <code>/designer-tasks/</code> · Sub-app of <code>operation.yotser.in</code>
+    <span id="health" class="health loading"><span class="dot"></span><span id="health-text">checking…</span></span>
   </div>
+
 </main>
 
-<script>
-  const API = '/designer-tasks';
+<div class="toast" id="toast"></div>
 
-  async function checkHealth() {
-    const el     = document.getElementById('health');
-    const txtEl  = document.getElementById('health-text');
-    try {
-      const res  = await fetch(`${API}/api/health`);
-      const data = await res.json();
-      if (data.ok) {
-        el.className = 'health ok';
-        txtEl.textContent = `Backend OK · DB time ${new Date(data.db_time).toLocaleTimeString()}`;
-      } else {
-        throw new Error(data.error || 'unknown');
-      }
-    } catch (err) {
-      el.className = 'health err';
-      txtEl.textContent = `Backend error: ${err.message}`;
-    }
+<script>
+const API = '/designer-tasks';
+
+// ----------------------------- helpers -----------------------------
+function showTab(name) {
+  document.querySelectorAll('nav.tabs button').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === name);
+  });
+  document.querySelectorAll('.panel').forEach(p => {
+    p.classList.toggle('active', p.id === 'panel-' + name);
+  });
+}
+document.querySelectorAll('nav.tabs button').forEach(b => {
+  if (!b.disabled) b.addEventListener('click', () => showTab(b.dataset.tab));
+});
+
+function toast(msg, kind) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + (kind || '');
+  setTimeout(() => { el.className = 'toast ' + (kind || ''); }, 2800);
+}
+
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  const res = await fetch(API + path, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `${res.status} ${res.statusText}`);
+  return data;
+}
+
+function copyToClipboard(text, btn) {
+  navigator.clipboard.writeText(text)
+    .then(() => { const old = btn.textContent; btn.textContent = '✓'; setTimeout(() => btn.textContent = old, 1200); })
+    .catch(() => toast('Copy failed', 'error'));
+}
+
+function tagPillClass(name) {
+  return 'pill tag-' + name.toLowerCase().replace(/\s+/g, '-');
+}
+
+// ----------------------------- designers ---------------------------
+async function loadDesigners() {
+  try {
+    const list = await api('GET', '/api/designers');
+    renderDesigners(list);
+  } catch (e) {
+    toast('Failed to load designers: ' + e.message, 'error');
   }
-  checkHealth();
-  setInterval(checkHealth, 15000);
+}
+
+function renderDesigners(list) {
+  const tbody = document.getElementById('designer-rows');
+  if (list.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--muted); padding: 24px;">
+      No designers yet. Add one below.
+    </td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(d => {
+    const url = `${API}/d/${d.url_token}`;
+    const fullUrl = location.origin + url;
+    const status = d.is_active
+      ? `<span class="pill green">Active</span>`
+      : `<span class="pill red">Inactive</span>`;
+    return `<tr data-id="${d.id}">
+      <td>${escapeHtml(d.name)}</td>
+      <td>
+        <code>${escapeHtml(url)}</code>
+        <button class="copy-btn" onclick="copyToClipboard('${fullUrl}', this)">copy</button>
+      </td>
+      <td>••••</td>
+      <td>${status}</td>
+      <td style="text-align: right;">
+        <button class="icon-btn" onclick="startEdit(${d.id})">✎ Edit</button>
+        <button class="icon-btn" onclick="rotateToken(${d.id})" title="Rotate URL token">↻ Token</button>
+        <button class="icon-btn danger" onclick="deleteDesigner(${d.id}, '${escapeAttr(d.name)}')">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+function escapeAttr(s) { return escapeHtml(s).replace(/'/g, '&#39;'); }
+
+document.getElementById('btn-add').addEventListener('click', addDesigner);
+document.getElementById('new-pin').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') addDesigner();
+});
+
+async function addDesigner() {
+  const name = document.getElementById('new-name').value.trim();
+  const pin  = document.getElementById('new-pin').value.trim();
+  if (!name) return toast('Enter a name', 'error');
+  if (!/^\d{4}$/.test(pin)) return toast('PIN must be 4 digits', 'error');
+  try {
+    await api('POST', '/api/designers', { name, pin });
+    document.getElementById('new-name').value = '';
+    document.getElementById('new-pin').value  = '';
+    document.getElementById('new-name').focus();
+    toast('Designer added', 'success');
+    loadDesigners();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+async function deleteDesigner(id, name) {
+  if (!confirm(`Delete designer "${name}"?\n\nThis is hard delete — historical records that reference them will block deletion.`)) return;
+  try {
+    await api('DELETE', '/api/designers/' + id);
+    toast('Designer deleted', 'success');
+    loadDesigners();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+async function rotateToken(id) {
+  if (!confirm('Generate a new public URL for this designer?\n\nThe old URL will stop working immediately. The designer must rebookmark.')) return;
+  try {
+    await api('POST', '/api/designers/' + id + '/rotate-token');
+    toast('URL rotated', 'success');
+    loadDesigners();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+function startEdit(id) {
+  const row = document.querySelector(`tr[data-id="${id}"]`);
+  if (!row) return;
+  const name = row.children[0].textContent;
+  row.classList.add('editing');
+  row.innerHTML = `
+    <td><input class="edit-name" value="${escapeAttr(name)}" /></td>
+    <td colspan="2"><input class="edit-pin" placeholder="New PIN (leave blank to keep)" maxlength="4" inputmode="numeric" /></td>
+    <td>
+      <label style="font-size: 12px;"><input class="edit-active" type="checkbox" checked> Active</label>
+    </td>
+    <td style="text-align: right;">
+      <button class="btn" onclick="saveEdit(${id})">Save</button>
+      <button class="icon-btn" onclick="loadDesigners()">Cancel</button>
+    </td>
+  `;
+}
+
+async function saveEdit(id) {
+  const row = document.querySelector(`tr[data-id="${id}"]`);
+  if (!row) return;
+  const body = {};
+  const newName   = row.querySelector('.edit-name').value.trim();
+  const newPin    = row.querySelector('.edit-pin').value.trim();
+  const newActive = row.querySelector('.edit-active').checked;
+  if (newName) body.name = newName;
+  if (newPin)  {
+    if (!/^\d{4}$/.test(newPin)) return toast('PIN must be 4 digits', 'error');
+    body.pin = newPin;
+  }
+  body.is_active = newActive;
+  try {
+    await api('PATCH', '/api/designers/' + id, body);
+    toast('Designer updated', 'success');
+    loadDesigners();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+// ----------------------------- tags --------------------------------
+async function loadTags() {
+  try {
+    const list = await api('GET', '/api/tags');
+    document.getElementById('tags-list').innerHTML = list.length
+      ? list.map(t => `<span class="${tagPillClass(t.name)}" style="font-size: 13px; padding: 4px 12px;">${escapeHtml(t.name)}</span>`).join('')
+      : '<span style="color: var(--muted); font-size: 12px;">No tags yet.</span>';
+  } catch (e) {
+    document.getElementById('tags-list').innerHTML = `<span style="color: var(--red); font-size: 12px;">Failed to load tags</span>`;
+  }
+}
+
+// ----------------------------- health ------------------------------
+async function checkHealth() {
+  const el = document.getElementById('health');
+  const txt = document.getElementById('health-text');
+  try {
+    const data = await api('GET', '/api/health');
+    el.className = 'health ok';
+    txt.textContent = 'Backend OK · ' + new Date(data.db_time).toLocaleTimeString();
+  } catch (e) {
+    el.className = 'health err';
+    txt.textContent = 'Backend error';
+  }
+}
+
+// ----------------------------- boot --------------------------------
+loadDesigners();
+loadTags();
+checkHealth();
+setInterval(checkHealth, 30000);
 </script>
 </body>
 </html>

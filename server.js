@@ -64,15 +64,17 @@ router.get('/api/dashboard', async (_req, res) => {
   }
 });
 
-// Future routes will go here, organized by feature:
+// Mounted feature routes.
+require('./routes/designers')(router, db);
+require('./routes/tags')(router, db);
+
+// Future routes (mount as features land):
 //   require('./routes/auth')(router, db);
 //   require('./routes/pool')(router, db);
 //   require('./routes/active')(router, db);
 //   require('./routes/assignments')(router, db);
 //   require('./routes/capacity')(router, db);
 //   require('./routes/reports')(router, db);
-//   require('./routes/designers')(router, db);
-//   require('./routes/tags')(router, db);
 //   require('./routes/zoho')(router, db);
 //   require('./routes/designer_public')(router, db);
 

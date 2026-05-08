@@ -1,6 +1,6 @@
 {
   "name": "designer-task-scheduler",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Daily task assignment + capacity tracking for the design team. Sub-app of operation.yotser.in/designer-tasks/.",
   "main": "server.js",
@@ -9,7 +9,7 @@
     "init-db": "node scripts/init-db.js"
   },
   "dependencies": {
-    "bcrypt": "^5.1.1",
+    "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "pg": "^8.11.5"
