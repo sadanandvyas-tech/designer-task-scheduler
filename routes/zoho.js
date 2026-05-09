@@ -74,19 +74,38 @@ async function fetchDesigningTasks(db) {
   //   3. Filter by tag client-side
   // This is N+1 calls but works on every Zoho Projects edition.
 
-  // 1. Projects
-  const projectsUrl = `https://projectsapi.zoho.in/restapi/portal/${portalId}/projects/?index=1&range=200`;
-  const projRes = await fetch(projectsUrl, { headers });
-  const projData = await projRes.json().catch(() => ({}));
-  if (!projRes.ok) {
-    throw new Error('Zoho projects fetch failed: ' +
-      (projData.error?.message || projRes.statusText) +
-      ' (URL: ' + projectsUrl + ')');
+  // 1. Projects — paginated. Zoho returns max 200 per page; iterate until empty.
+  // Try both 'active' and 'archived' statuses to capture any open tasks in
+  // projects that have been marked complete but still have outstanding work.
+  const projects = [];
+  for (const status of ['active', 'archived']) {
+    let from = 1;
+    while (true) {
+      const projectsUrl = `https://projectsapi.zoho.in/restapi/portal/${portalId}/projects/?index=${from}&range=200&status=${status}`;
+      const projRes = await fetch(projectsUrl, { headers });
+      const projData = await projRes.json().catch(() => ({}));
+      if (!projRes.ok) {
+        // If the very first page of 'active' fails, that's a real error.
+        // For 'archived' page-1 failure, just skip — some Zoho editions don't expose archived.
+        if (status === 'active' && from === 1) {
+          throw new Error('Zoho projects fetch failed: ' +
+            (projData.error?.message || projRes.statusText) +
+            ' (URL: ' + projectsUrl + ')');
+        }
+        break;
+      }
+      const page = projData.projects || [];
+      if (page.length === 0) break;
+      projects.push(...page);
+      if (page.length < 200) break;
+      from += 200;
+      if (from > 5000) break; // safety cap: 5000 projects is plenty
+    }
   }
-  const projects = projData.projects || [];
   if (projects.length === 0) {
     throw new Error('No projects returned from Zoho. Verify portal_id "' + portalId + '" matches your portal URL.');
   }
+  console.log(`[zoho-sync] fetched ${projects.length} projects total`);
 
   // 2. Tasks per project (paginated)
   const collected = [];
@@ -114,6 +133,8 @@ async function fetchDesigningTasks(db) {
       if (from > 10000) break;
     }
   }
+
+  console.log(`[zoho-sync] collected ${collected.length} raw tasks across ${projects.length} projects (before filter)`);
 
   // 3. Filter: must have the Designing tag AND not be in a closed status.
   // Zoho's status object has a `type` field set to "open" or "closed" — we use
