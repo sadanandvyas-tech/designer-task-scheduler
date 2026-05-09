@@ -408,6 +408,7 @@
     <div class="page-sub">Tasks pulled from Zoho (or sent back from Active). Move to Active to stage for assignment.</div>
 
     <div class="toolbar">
+      <button class="btn ghost" id="btn-pool-refresh">↻ Refresh</button>
       <button class="btn" id="btn-sync-now">⟳ Sync now (Zoho)</button>
       <span class="muted" id="last-sync-text">Loading…</span>
     </div>
@@ -615,6 +616,11 @@
 const API = '/designer-tasks';
 
 // =========================== helpers ===========================
+const VALID_TABS = ['dashboard','pool','active','capacity','completed','reports','settings'];
+function currentTab() {
+  const btn = document.querySelector('nav.tabs button.active');
+  return btn ? btn.dataset.tab : 'active';
+}
 function showTab(name) {
   document.querySelectorAll('nav.tabs button').forEach(b => {
     b.classList.toggle('active', b.dataset.tab === name);
@@ -622,6 +628,8 @@ function showTab(name) {
   document.querySelectorAll('main > .panel').forEach(p => {
     p.classList.toggle('active', p.id === 'panel-' + name);
   });
+  // Persist current tab in URL hash so browser refresh stays put
+  if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name);
   if (name === 'dashboard') loadDashboard();
   if (name === 'pool')      loadPool();
   if (name === 'active')    { loadActiveTasks(); loadAvailability(); loadTagsForAdhoc(); }
@@ -629,6 +637,12 @@ function showTab(name) {
   if (name === 'completed') initCompletedTab();
   if (name === 'reports')   initReportsTab();
   if (name === 'settings')  { loadDesigners(); loadTags(); loadZohoStatus(); }
+}
+// On boot — restore the tab from URL hash if valid; otherwise default to Active
+function restoreInitialTab() {
+  const hashTab = (location.hash || '').replace(/^#/, '');
+  if (VALID_TABS.includes(hashTab)) showTab(hashTab);
+  // else: leave the default Active tab (already 'active' in HTML)
 }
 document.querySelectorAll('nav.tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 document.querySelectorAll('.tile[data-tab]').forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
@@ -806,6 +820,10 @@ document.getElementById('btn-bulk-active').addEventListener('click', async () =>
     toast(`Moved ${r.moved} to Active`, 'success');
     loadPool();
   } catch (e) { toast(e.message, 'error'); }
+});
+document.getElementById('btn-pool-refresh').addEventListener('click', () => {
+  loadPool();
+  toast('Pool refreshed', 'success');
 });
 document.getElementById('btn-sync-now').addEventListener('click', async () => {
   const btn = document.getElementById('btn-sync-now');
@@ -992,13 +1010,19 @@ async function assignTask(taskId) {
     } else { toast(e.message, 'error'); }
   }
 }
+// Reload whichever tab is currently visible. Used after any state change so
+// the user sees the result without manual refresh.
+function reloadCurrentTab() {
+  showTab(currentTab());
+}
+
 async function sendBack(taskId) {
   if (!confirm('Send this task back to the Pool?\nAny existing assignments will be removed.')) return;
   try {
     await api('POST', `/api/tasks/${taskId}/send-back`, { actor: getActor() });
     toast('Sent to Pool', 'success');
     delete taskSlices[taskId];
-    loadActiveTasks();
+    reloadCurrentTab();
   } catch (e) { toast(e.message, 'error'); }
 }
 async function cancelTask(taskId, name) {
@@ -1010,7 +1034,7 @@ async function cancelTask(taskId, name) {
     await api('POST', `/api/tasks/${taskId}/cancel`, { reason: trimmed, actor: getActor() });
     toast('Cancelled', 'success');
     delete taskSlices[taskId];
-    loadActiveTasks();
+    reloadCurrentTab();
   } catch (e) { toast(e.message, 'error'); }
 }
 
@@ -1116,7 +1140,7 @@ async function toggleDone(assignmentId) {
   try {
     const r = await api('POST', `/api/assignments/${assignmentId}/done`, { actor: getActor() });
     toast(r.is_done ? (r.all_done ? 'Task complete!' : 'Marked done') : 'Marked undone', 'success');
-    loadCapacityActive();
+    reloadCurrentTab();
   } catch (e) { toast(e.message, 'error'); }
 }
 // ---- Inline reassign state machine ----
@@ -1518,6 +1542,11 @@ loadTagsForAdhoc();
 loadDashboard();   // pre-load tile counts so badges populate
 checkHealth();
 setInterval(checkHealth, 30000);
+// Restore the tab from URL hash on first load (so browser refresh stays put).
+// Done after the default loaders so default-tab data is ready in case hash is invalid.
+restoreInitialTab();
+// Also respond to hash changes (back button, etc.)
+window.addEventListener('hashchange', restoreInitialTab);
 </script>
 </body>
 </html>
