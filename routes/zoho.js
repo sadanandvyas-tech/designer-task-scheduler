@@ -17,6 +17,8 @@
 // Mounted by server.js: require('./routes/zoho')(router, db);
 
 let inflightSync = false;     // simple lock so 5-min poll + manual click don't collide
+let inflightSyncStartedAt = null;
+const MAX_SYNC_DURATION_MS = 3 * 60 * 1000;  // 3 minutes — stuck-lock recovery
 let cachedToken  = null;      // { access_token, expires_at_ms }
 
 async function getSetting(db, key) {
@@ -74,33 +76,29 @@ async function fetchDesigningTasks(db) {
   //   3. Filter by tag client-side
   // This is N+1 calls but works on every Zoho Projects edition.
 
-  // 1. Projects — paginated. Zoho returns max 200 per page; iterate until empty.
-  // Try both 'active' and 'archived' statuses to capture any open tasks in
-  // projects that have been marked complete but still have outstanding work.
+  // 1. Projects — paginated, ACTIVE only. Zoho returns max 200 per page;
+  // iterate until empty. Archived projects are excluded for speed; their
+  // tasks would mostly be historical anyway.
   const projects = [];
-  for (const status of ['active', 'archived']) {
-    let from = 1;
-    while (true) {
-      const projectsUrl = `https://projectsapi.zoho.in/restapi/portal/${portalId}/projects/?index=${from}&range=200&status=${status}`;
-      const projRes = await fetch(projectsUrl, { headers });
-      const projData = await projRes.json().catch(() => ({}));
-      if (!projRes.ok) {
-        // If the very first page of 'active' fails, that's a real error.
-        // For 'archived' page-1 failure, just skip — some Zoho editions don't expose archived.
-        if (status === 'active' && from === 1) {
-          throw new Error('Zoho projects fetch failed: ' +
-            (projData.error?.message || projRes.statusText) +
-            ' (URL: ' + projectsUrl + ')');
-        }
-        break;
+  let from = 1;
+  while (true) {
+    const projectsUrl = `https://projectsapi.zoho.in/restapi/portal/${portalId}/projects/?index=${from}&range=200&status=active`;
+    const projRes = await fetch(projectsUrl, { headers });
+    const projData = await projRes.json().catch(() => ({}));
+    if (!projRes.ok) {
+      if (from === 1) {
+        throw new Error('Zoho projects fetch failed: ' +
+          (projData.error?.message || projRes.statusText) +
+          ' (URL: ' + projectsUrl + ')');
       }
-      const page = projData.projects || [];
-      if (page.length === 0) break;
-      projects.push(...page);
-      if (page.length < 200) break;
-      from += 200;
-      if (from > 5000) break; // safety cap: 5000 projects is plenty
+      break;
     }
+    const page = projData.projects || [];
+    if (page.length === 0) break;
+    projects.push(...page);
+    if (page.length < 200) break;
+    from += 200;
+    if (from > 5000) break;
   }
   if (projects.length === 0) {
     throw new Error('No projects returned from Zoho. Verify portal_id "' + portalId + '" matches your portal URL.');
@@ -197,9 +195,14 @@ async function importTasks(db, zohoTasks, triggeredBy = 'cron') {
 
 async function runSync(db, triggeredBy = 'cron') {
   if (inflightSync) {
-    return { ok: false, error: 'sync already running' };
+    const age = inflightSyncStartedAt ? (Date.now() - inflightSyncStartedAt) : 0;
+    if (age < MAX_SYNC_DURATION_MS) {
+      return { ok: false, error: `sync already running (${Math.round(age/1000)}s in)` };
+    }
+    console.warn(`[zoho-sync] previous sync stuck for ${Math.round(age/1000)}s — overriding lock`);
   }
   inflightSync = true;
+  inflightSyncStartedAt = Date.now();
   const { rows: logRow } = await db.query(
     `INSERT INTO sync_log (trigger_type, triggered_by) VALUES ($1, $2) RETURNING id`,
     [triggeredBy === 'cron' ? 'scheduled' : 'manual', triggeredBy]
