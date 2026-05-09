@@ -454,12 +454,11 @@
           <th>Project / Tag</th>
           <th>Designer (free hrs today)</th>
           <th>Date</th>
-          <th style="width: 60px;">H</th>
-          <th style="width: 70px;">M</th>
+          <th style="width: 130px;">Duration</th>
           <th style="width: 240px;">Action</th>
         </tr>
       </thead>
-      <tbody id="active-rows"><tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Loading…</td></tr></tbody>
+      <tbody id="active-rows"><tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">Loading…</td></tr></tbody>
     </table>
     <div style="margin-top:12px; color:var(--muted); font-size:12px;" id="active-summary"></div>
   </section>
@@ -891,7 +890,7 @@ function renderActiveTasks() {
   }
   let html = '';
   for (const t of activeTasks) {
-    if (!taskSlices[t.id]) taskSlices[t.id] = [{ date: todayISO(), hours: '', minutes: 0 }];
+    if (!taskSlices[t.id]) taskSlices[t.id] = [{ date: todayISO(), minutes: 0 }];
     const slices = taskSlices[t.id];
     slices.forEach((slice, idx) => { html += renderSliceRow(t, slice, idx, idx === 0); });
   }
@@ -901,6 +900,21 @@ function renderActiveTasks() {
     (counts.zoho ? ` · ${counts.zoho} from Zoho` : '') +
     (counts.adhoc ? ` · ${counts.adhoc} ad-hoc` : '');
 }
+// Build the Duration dropdown options: 15m, 30m, 45m, 1h, 1h 15m, ..., 8h.
+function durationOptionsHTML(currentMinutes) {
+  const out = ['<option value="0">— duration —</option>'];
+  for (let m = 15; m <= 480; m += 15) {
+    const h = Math.floor(m / 60), mm = m % 60;
+    let label;
+    if (h && mm) label = `${h}h ${mm}m`;
+    else if (h)  label = `${h}h`;
+    else         label = `${mm}m`;
+    const sel = m === currentMinutes ? 'selected' : '';
+    out.push(`<option value="${m}" ${sel}>${label}</option>`);
+  }
+  return out.join('');
+}
+
 function renderSliceRow(task, slice, idx, isFirst) {
   const taskId = task.id;
   if (isFirst) {
@@ -918,8 +932,7 @@ function renderSliceRow(task, slice, idx, isFirst) {
       <td>${projectCell}${tagCell}</td>
       <td><select class="inline-input" data-field="designer" data-task-id="${taskId}">${designerOptionsHTML('')}</select></td>
       <td><input class="inline-input" type="date" value="${slice.date}" data-field="date" data-task-id="${taskId}" data-slice-idx="${idx}" /></td>
-      <td><input class="inline-input" type="number" min="0" max="8" value="${slice.hours}" placeholder="0" data-field="hours" data-task-id="${taskId}" data-slice-idx="${idx}" /></td>
-      <td><select class="inline-input" data-field="minutes" data-task-id="${taskId}" data-slice-idx="${idx}">${[0,15,30,45].map(v => `<option value="${v}" ${slice.minutes==v?'selected':''}>${String(v).padStart(2,'0')}</option>`).join('')}</select></td>
+      <td><select class="inline-input" data-field="duration" data-task-id="${taskId}" data-slice-idx="${idx}">${durationOptionsHTML(slice.minutes || 0)}</select></td>
       <td>
         <button class="btn" onclick="assignTask(${taskId})">Assign</button>
         <button class="btn ghost" onclick="addSlice(${taskId})" title="Add another day">+ Slice</button>
@@ -932,8 +945,7 @@ function renderSliceRow(task, slice, idx, isFirst) {
     <td colspan="2" class="slice-label">↳ same task, additional day (same designer as row above)</td>
     <td><span style="color:var(--muted); font-size:12px; padding-left:6px;">(continues)</span></td>
     <td><input class="inline-input" type="date" value="${slice.date}" data-field="date" data-task-id="${taskId}" data-slice-idx="${idx}" /></td>
-    <td><input class="inline-input" type="number" min="0" max="8" value="${slice.hours}" placeholder="0" data-field="hours" data-task-id="${taskId}" data-slice-idx="${idx}" /></td>
-    <td><select class="inline-input" data-field="minutes" data-task-id="${taskId}" data-slice-idx="${idx}">${[0,15,30,45].map(v => `<option value="${v}" ${slice.minutes==v?'selected':''}>${String(v).padStart(2,'0')}</option>`).join('')}</select></td>
+    <td><select class="inline-input" data-field="duration" data-task-id="${taskId}" data-slice-idx="${idx}">${durationOptionsHTML(slice.minutes || 0)}</select></td>
     <td><button class="icon-btn danger" onclick="removeSlice(${taskId}, ${idx})">✕ Remove slice</button></td>
   </tr>`;
 }
@@ -945,14 +957,13 @@ document.addEventListener('change', (e) => {
   if (!taskSlices[taskId]) return;
   const slice = taskSlices[taskId][idx];
   if (!slice) return;
-  if (t.dataset.field === 'date')    slice.date = t.value;
-  if (t.dataset.field === 'hours')   slice.hours = t.value;
-  if (t.dataset.field === 'minutes') slice.minutes = parseInt(t.value);
+  if (t.dataset.field === 'date')     slice.date = t.value;
+  if (t.dataset.field === 'duration') slice.minutes = parseInt(t.value || '0');
 });
 function addSlice(taskId) {
   if (!taskSlices[taskId]) taskSlices[taskId] = [];
   const last = taskSlices[taskId][taskSlices[taskId].length - 1];
-  taskSlices[taskId].push({ date: last ? addDays(last.date, 1) : todayISO(), hours: '', minutes: 0 });
+  taskSlices[taskId].push({ date: last ? addDays(last.date, 1) : todayISO(), minutes: 0 });
   renderActiveTasks();
 }
 function removeSlice(taskId, idx) {
@@ -984,10 +995,10 @@ async function assignTask(taskId) {
 
   const payload = [];
   for (const s of slices) {
-    const total = parseInt(s.hours || '0') * 60 + parseInt(s.minutes || '0');
+    const total = parseInt(s.minutes || '0');
     if (total > 0) payload.push({ date: s.date, minutes: total });
   }
-  if (payload.length === 0) return toast('Set hours/minutes', 'error');
+  if (payload.length === 0) return toast('Pick a duration', 'error');
 
   const tryAssign = async (force) => {
     return await api('POST', `/api/tasks/${taskId}/assign`, { designer_id: designerId, slices: payload, force, actor: getActor() });
