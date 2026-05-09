@@ -115,8 +115,10 @@ async function fetchDesigningTasks(db) {
       const res = await fetch(url, { headers });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        // Don't fail the whole sync if one project errors — log and skip
-        console.error(`[zoho] tasks fetch failed for project ${pid}:`, data.error?.message || res.statusText);
+        // Don't fail the whole sync if one project errors — log and skip.
+        // Capture HTTP status + response body so we can diagnose what Zoho is actually saying.
+        const bodyPreview = JSON.stringify(data).slice(0, 300);
+        console.error(`[zoho] tasks fetch failed for project ${pid}: HTTP ${res.status} body=${bodyPreview}`);
         break;
       }
       const tasks = data.tasks || [];
