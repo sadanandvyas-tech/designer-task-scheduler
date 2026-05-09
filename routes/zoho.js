@@ -65,44 +65,74 @@ async function fetchDesigningTasks(db) {
   const tagName = await getSetting(db, 'zoho_designing_tag_name') || 'Designing';
 
   const accessToken = await getAccessToken(db);
+  const headers = { 'Authorization': `Zoho-oauthtoken ${accessToken}` };
 
-  // Endpoint: list tasks across the portal. Pagination: 200/page max per Zoho.
-  // We paginate and stop when fewer than 200 returned.
-  const collected = [];
-  let from = 1;
-  while (true) {
-    const url = `https://projectsapi.zoho.in/restapi/portal/${portalId}/tasks/` +
-                `?index=${from}&range=200`;
-    const res = await fetch(url, {
-      headers: { 'Authorization': `Zoho-oauthtoken ${accessToken}` }
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error('Zoho tasks fetch failed: ' + (data.error?.message || res.statusText));
-    }
-    const tasks = data.tasks || [];
-    collected.push(...tasks);
-    if (tasks.length < 200) break;
-    from += 200;
-    if (from > 10000) break; // safety
+  // Zoho's cross-portal /tasks/ endpoint requires extra params we can't easily
+  // satisfy (status_index, customstatus, etc.). The reliable pattern is:
+  //   1. List all projects in the portal
+  //   2. For each project, list its tasks
+  //   3. Filter by tag client-side
+  // This is N+1 calls but works on every Zoho Projects edition.
+
+  // 1. Projects
+  const projectsUrl = `https://projectsapi.zoho.in/restapi/portal/${portalId}/projects/?index=1&range=200`;
+  const projRes = await fetch(projectsUrl, { headers });
+  const projData = await projRes.json().catch(() => ({}));
+  if (!projRes.ok) {
+    throw new Error('Zoho projects fetch failed: ' +
+      (projData.error?.message || projRes.statusText) +
+      ' (URL: ' + projectsUrl + ')');
+  }
+  const projects = projData.projects || [];
+  if (projects.length === 0) {
+    throw new Error('No projects returned from Zoho. Verify portal_id "' + portalId + '" matches your portal URL.');
   }
 
-  // Filter by tag — match by tag_id if set, else fuzzy by name.
+  // 2. Tasks per project (paginated)
+  const collected = [];
+  for (const proj of projects) {
+    const pid = proj.id_string || proj.id;
+    let from = 1;
+    while (true) {
+      const url = `https://projectsapi.zoho.in/restapi/portal/${portalId}/projects/${pid}/tasks/?index=${from}&range=200`;
+      const res = await fetch(url, { headers });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        // Don't fail the whole sync if one project errors — log and skip
+        console.error(`[zoho] tasks fetch failed for project ${pid}:`, data.error?.message || res.statusText);
+        break;
+      }
+      const tasks = data.tasks || [];
+      // Augment each task with project context (it's not always in the task body)
+      for (const t of tasks) {
+        t._project_id = String(pid);
+        t._project_name = proj.name || '(no project name)';
+      }
+      collected.push(...tasks);
+      if (tasks.length < 200) break;
+      from += 200;
+      if (from > 10000) break;
+    }
+  }
+
+  // 3. Filter by tag
   return collected.filter(t => {
-    const tags = t.tags || [];
-    if (tagId) return tags.some(tg => String(tg.id) === String(tagId));
-    return tags.some(tg => (tg.name || '').toLowerCase() === tagName.toLowerCase());
+    const tags = t.tags || (t.details && t.details.tags) || [];
+    if (tagId) return tags.some(tg => String(tg.id) === String(tagId) || String(tg.id_string) === String(tagId));
+    return tags.some(tg => (tg.name || tg.tag_name || '').toLowerCase() === tagName.toLowerCase());
   });
 }
 
 async function importTasks(db, zohoTasks, triggeredBy = 'cron') {
   let inserted = 0, skipped = 0;
   for (const z of zohoTasks) {
-    const projectId = String(z.project_id || z.project?.id || '');
-    const taskId    = String(z.id || z.id_string || '');
+    // Use the augmented _project_id we set during fetch (most reliable),
+    // falling back to nested z.project.id or z.project_id.
+    const projectId = String(z._project_id || z.project_id || z.project?.id || '');
+    const taskId    = String(z.id_string || z.id || '');
     if (!projectId || !taskId) { skipped++; continue; }
 
-    const projectName = z.project_name || z.project?.name || '(no project)';
+    const projectName = z._project_name || z.project_name || z.project?.name || '(no project)';
     const taskName    = z.name || z.title || '(unnamed)';
     const status      = z.status?.name || z.status_name || null;
     const priority    = z.priority || null;
