@@ -267,6 +267,62 @@ module.exports = function (router, db) {
     } catch (err) { res.status(500).json({ error: err.message }); }
   });
 
+  // ---- DEBUG: raw Zoho responses, no filtering ----
+  router.get('/api/zoho/debug', async (req, res) => {
+    try {
+      const portalId = await getSetting(db, 'zoho_portal_id');
+      if (!portalId) return res.status(400).json({ error: 'portal_id not set' });
+      const accessToken = await getAccessToken(db);
+      const headers = { 'Authorization': `Zoho-oauthtoken ${accessToken}` };
+
+      // 1. Projects
+      const projUrl = `https://projectsapi.zoho.in/restapi/portal/${portalId}/projects/?index=1&range=10`;
+      const projRes = await fetch(projUrl, { headers });
+      const projData = await projRes.json().catch(() => ({}));
+      const projects = projData.projects || [];
+
+      // 2. First project's tasks (if any) — RAW, no filter
+      let sampleTasks = [];
+      let sampleTaskKeys = null;
+      let sampleTagShape = null;
+      let sampleStatusShape = null;
+      let totalTasksAcrossSampledProjects = 0;
+      const sampledProjects = projects.slice(0, 3);
+      for (const proj of sampledProjects) {
+        const pid = proj.id_string || proj.id;
+        const taskUrl = `https://projectsapi.zoho.in/restapi/portal/${portalId}/projects/${pid}/tasks/?index=1&range=10`;
+        const taskRes = await fetch(taskUrl, { headers });
+        const taskData = await taskRes.json().catch(() => ({}));
+        const tasks = taskData.tasks || [];
+        totalTasksAcrossSampledProjects += tasks.length;
+        if (tasks.length > 0 && sampleTasks.length < 3) {
+          sampleTasks.push(...tasks.slice(0, 3 - sampleTasks.length));
+          if (!sampleTaskKeys) sampleTaskKeys = Object.keys(tasks[0]);
+          if (!sampleStatusShape && tasks[0].status) sampleStatusShape = tasks[0].status;
+          if (!sampleTagShape) {
+            const t0 = tasks[0];
+            const tg = (t0.tags && t0.tags[0]) || (t0.details && t0.details.tags && t0.details.tags[0]);
+            if (tg) sampleTagShape = tg;
+          }
+        }
+      }
+
+      res.json({
+        portal_id: portalId,
+        projects_total: projects.length,
+        projects_sample_names: projects.slice(0, 5).map(p => ({ id: p.id, name: p.name })),
+        sampled_projects: sampledProjects.length,
+        total_tasks_across_sampled_projects: totalTasksAcrossSampledProjects,
+        sample_task_top_level_keys: sampleTaskKeys,
+        sample_status_shape: sampleStatusShape,
+        sample_tag_shape: sampleTagShape,
+        sample_tasks: sampleTasks,
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // ---- clear all Zoho-sourced tasks in pool state (for re-import) ----
   // Only deletes from pool — Zoho tasks that were already moved to active /
   // assigned / done are preserved. Ad-hoc tasks are never touched.
