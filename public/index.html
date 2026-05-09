@@ -47,25 +47,34 @@
   nav.tabs {
     background: #fff; border-bottom: 1px solid var(--line);
     display: flex; gap: 4px; padding: 0 24px;
-    position: sticky; top: 0; z-index: 5;
+    position: sticky; top: 0; z-index: 5; overflow-x: auto;
   }
   nav.tabs button {
     padding: 12px 16px; color: var(--muted); background: none; border: 0;
     border-bottom: 3px solid transparent; font-size: 13px; cursor: pointer;
-    font-family: inherit;
+    font-family: inherit; white-space: nowrap;
   }
   nav.tabs button.active { color: var(--brand); border-color: var(--brand); font-weight: 600; }
   nav.tabs button:hover:not(.active):not(:disabled) { color: var(--ink); }
-  nav.tabs button:disabled { color: #cbd5e1; cursor: not-allowed; }
   nav.tabs button .badge {
     display: inline-block; font-size: 10px; padding: 1px 6px;
     border-radius: 8px; background: #e5e7eb; color: var(--muted);
     margin-left: 6px; vertical-align: middle;
   }
+  nav.tabs button.active .badge { background: var(--brand); color: #fff; }
+
+  .subtabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .subtabs button {
+    padding: 8px 16px; border: 1px solid var(--line); background: #fff;
+    border-radius: 6px; cursor: pointer; font: inherit; font-size: 13px;
+  }
+  .subtabs button.active { background: var(--brand); color: #fff; border-color: var(--brand); }
 
   main { max-width: 1240px; margin: 0 auto; padding: 24px; }
   .panel { display: none; }
   .panel.active { display: block; }
+  .subpanel { display: none; }
+  .subpanel.active { display: block; }
   .panel h2.page-title { font-size: 22px; margin: 0 0 6px; font-weight: 700; }
   .panel .page-sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
 
@@ -77,7 +86,6 @@
   .placeholder h3 { margin: 0 0 4px; font-size: 16px; }
   .placeholder p { color: var(--muted); margin: 0; font-size: 13px; }
 
-  /* Settings sections */
   .section {
     background: var(--card); border: 1px solid var(--line); border-radius: 12px;
     padding: 20px 24px; margin-bottom: 16px;
@@ -87,6 +95,35 @@
     letter-spacing: 0.06em; color: var(--muted); font-weight: 600;
   }
   .section .sub { color: var(--muted); font-size: 12px; margin-bottom: 14px; }
+
+  /* Dashboard tiles */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 16px; }
+  .tile {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 18px; cursor: pointer; transition: transform 0.1s;
+  }
+  .tile:hover { transform: translateY(-2px); }
+  .tile .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .tile .value { font-size: 36px; font-weight: 700; margin: 6px 0; }
+  .tile .sub { color: var(--muted); font-size: 12px; }
+  .tile.aged { border-left: 4px solid var(--yellow); }
+  .tile.cap { border-left: 4px solid var(--brand); }
+  .tile.pool { border-left: 4px solid var(--green); }
+  .tile.active-tile { border-left: 4px solid #8b5cf6; }
+
+  /* Banners */
+  .banner {
+    padding: 12px 16px; border-radius: 8px; margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  }
+  .banner.yellow { background: var(--yellow-bg); border-left: 4px solid var(--yellow); }
+  .banner.red { background: var(--red-bg); border-left: 4px solid var(--red); }
+  .banner.warn { background: #fef3c7; border-left: 4px solid #f59e0b; }
+  .banner.ok { background: var(--green-bg); border-left: 4px solid var(--green); }
+  .banner button {
+    background: #fff; border: 1px solid var(--line); padding: 6px 12px;
+    border-radius: 6px; cursor: pointer; font-size: 12px;
+  }
 
   /* Tables */
   table.std {
@@ -107,11 +144,11 @@
   }
   table.std .copy-btn:hover { color: var(--brand); border-color: var(--brand); }
 
-  /* Pills */
   .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
   .pill.green { background: var(--green-bg); color: #065f46; }
   .pill.red   { background: var(--red-bg);   color: #b91c1c; }
   .pill.lav   { background: var(--lavender); color: #6d28d9; }
+  .pill.yellow { background: var(--yellow-bg); color: #92400e; }
   .pill.tag-internal { background: #dbeafe; color: #1e40af; }
   .pill.tag-rework   { background: #fee2e2; color: #b91c1c; }
   .pill.tag-training { background: #d1fae5; color: #065f46; }
@@ -127,23 +164,22 @@
   .source-badge.zoho  { background: #e0e7ff; color: #3730a3; }
   .source-badge.adhoc { background: #fff7ed; color: #c2410c; }
 
-  /* Buttons */
   .btn {
     background: var(--brand); color: #fff; border: 0; padding: 7px 14px;
     border-radius: 6px; cursor: pointer; font: inherit; font-size: 13px;
   }
   .btn.ghost { background: #fff; color: var(--ink); border: 1px solid var(--line); }
   .btn.danger { background: #fff; color: var(--red); border: 1px solid var(--red); }
+  .btn.success { background: var(--green); }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .icon-btn {
     border: 1px solid var(--line); background: #fff; padding: 4px 8px;
     border-radius: 5px; font-size: 12px; cursor: pointer; margin-left: 2px;
   }
   .icon-btn.danger { color: var(--red); border-color: var(--red); }
-  .icon-btn:hover { border-color: var(--brand); color: var(--brand); }
+  .icon-btn:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
   .icon-btn.danger:hover { border-color: var(--red); color: var(--red); }
 
-  /* Inline add row (Settings designers + ad-hoc) */
   .add-row {
     background: #fafbff; border: 1px dashed var(--brand); border-radius: 8px;
     padding: 12px 14px; margin-top: 12px;
@@ -156,13 +192,9 @@
   }
   .add-row input.name, .add-row input.grow { flex: 1; min-width: 200px; }
   .add-row input.pin  { width: 100px; letter-spacing: 0.3em; }
-
-  .add-row.adhoc {
-    background: #fffbf5; border-color: var(--yellow);
-  }
+  .add-row.adhoc { background: #fffbf5; border-color: var(--yellow); }
   .add-row.adhoc strong { color: #92400e; }
 
-  /* Edit row inline (designers) */
   tr.editing td input, tr.editing td select {
     padding: 5px 8px; border: 1px solid var(--brand); border-radius: 4px;
     font: inherit; font-size: 13px; width: 100%;
@@ -179,18 +211,102 @@
   .assign-row.slice-extra td.slice-label {
     color: var(--muted); font-size: 12px; font-style: italic; padding-left: 22px;
   }
-  .assign-row.flash { animation: flashGreen 0.9s ease-out; }
-  @keyframes flashGreen {
-    0%   { background: #d1fae5; }
-    100% { background: transparent; }
-  }
   .inline-input {
     width: 100%; padding: 6px 8px; border: 1px solid var(--line);
     border-radius: 5px; font: inherit; font-size: 13px; background: #fff;
   }
   .inline-input:focus { outline: 2px solid var(--brand); outline-offset: -1px; border-color: var(--brand); }
 
-  /* Health pill (footer) */
+  /* Today board (Capacity > Today) */
+  .today-row {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 16px 18px; margin-bottom: 12px;
+  }
+  .today-row.overload { border-color: var(--red); background: #fff7f7; }
+  .today-row .row-head {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    flex-wrap: wrap; margin-bottom: 12px;
+  }
+  .today-row .name { font-weight: 600; font-size: 15px; min-width: 140px; }
+  .today-row .bars { display: flex; align-items: center; gap: 10px; flex: 1; }
+  .progress {
+    width: 280px; height: 14px; background: var(--bg);
+    border-radius: 8px; overflow: hidden; max-width: 100%;
+  }
+  .progress > div.fill { height: 100%; background: var(--green); transition: width 0.3s; }
+  .progress > div.done { height: 100%; background: #34d399; opacity: 0.7; }
+  .progress.over > div.fill { background: var(--red); }
+  .progress-text { color: var(--muted); font-size: 12px; }
+  .progress-text.over { color: var(--red); font-weight: 600; }
+
+  .task-card {
+    border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px;
+    margin-bottom: 6px; background: #fafbfc;
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    flex-wrap: wrap;
+  }
+  .task-card.done { background: #ecfdf5; opacity: 0.75; }
+  .task-card.aged { background: var(--yellow-bg); border-color: var(--yellow); }
+  .task-card .info { flex: 1; min-width: 240px; }
+  .task-card .info .title { font-weight: 600; font-size: 13px; }
+  .task-card .info .meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .task-card .actions { display: flex; gap: 4px; flex-wrap: wrap; }
+
+  /* Week grid */
+  .weekgrid { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .weekgrid th, .weekgrid td { border: 1px solid var(--line); padding: 12px; text-align: center; font-size: 13px; }
+  .weekgrid th { background: #f9fafb; font-size: 11px; text-transform: uppercase; color: var(--muted); }
+  .weekgrid .nm { text-align: left; font-weight: 600; background: #f9fafb; }
+  .weekgrid .ok { background: #ecfdf5; }
+  .weekgrid .full { background: var(--yellow-bg); }
+  .weekgrid .over { background: var(--red-bg); color: #b91c1c; font-weight: 600; }
+  .weekgrid .empty { color: var(--muted); }
+
+  /* Kanban */
+  .kanban { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+  .kanban .col {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px; min-height: 220px;
+  }
+  .kanban .col.over { border-color: var(--red); }
+  .kanban .col h4 { margin: 0 0 4px; font-size: 14px; }
+  .kanban .col .cap { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+  .kanban .col .card {
+    background: #f9fafb; border: 1px solid var(--line); border-radius: 6px;
+    padding: 8px 10px; margin-bottom: 6px; font-size: 12px;
+  }
+  .kanban .col .card.done { background: #ecfdf5; opacity: 0.75; }
+  .kanban .col .card.aged { background: var(--yellow-bg); border-color: var(--yellow); }
+
+  /* Reports */
+  .report-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+  @media (max-width: 800px) { .report-grid { grid-template-columns: 1fr; } }
+  .chart-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  .chart-card h3 { margin: 0 0 12px; font-size: 14px; }
+  .barchart { display: flex; align-items: flex-end; gap: 4px; height: 180px; padding: 8px 0; border-bottom: 1px solid var(--line); position: relative; }
+  .barchart .b {
+    flex: 1; min-width: 12px; background: var(--brand); border-radius: 3px 3px 0 0;
+    position: relative; cursor: pointer;
+  }
+  .barchart .b.miss { background: var(--yellow); }
+  .barchart .b.empty { background: #e5e7eb; min-height: 2px; }
+  .barchart .b .lbl {
+    position: absolute; bottom: -22px; left: 0; right: 0; text-align: center;
+    font-size: 9px; color: var(--muted); white-space: nowrap; transform: translateX(-25%);
+  }
+  .barchart .b .val {
+    position: absolute; top: -18px; left: 0; right: 0; text-align: center;
+    font-size: 10px; color: var(--ink); font-weight: 600;
+  }
+  .leaderboard { list-style: none; padding: 0; margin: 0; }
+  .leaderboard li { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .leaderboard li:last-child { border-bottom: 0; }
+  .leaderboard .pct { font-weight: 600; }
+  .leaderboard .pct.high { color: var(--green); }
+  .leaderboard .pct.mid  { color: var(--yellow); }
+  .leaderboard .pct.low  { color: var(--red); }
+
+  /* Footer */
   .footer-strip {
     margin-top: 32px; padding: 14px 0; text-align: center;
     border-top: 1px solid var(--line); color: var(--muted); font-size: 11px;
@@ -209,7 +325,13 @@
   .health.loading .dot { background: var(--muted); animation: pulse 1.2s ease-in-out infinite; }
   @keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
 
-  /* Toast */
+  .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+  .toolbar input[type=text], .toolbar select, .toolbar input[type=date] {
+    padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px; font: inherit; font-size: 13px;
+  }
+  .toolbar .grow { flex: 1; min-width: 120px; }
+  .toolbar .muted { color: var(--muted); font-size: 12px; }
+
   .toast {
     position: fixed; bottom: 20px; right: 20px;
     background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 6px;
@@ -219,6 +341,11 @@
   .toast.show { opacity: 1; }
   .toast.error { background: var(--red); }
   .toast.success { background: var(--green); }
+
+  kbd {
+    background: #f3f4f6; border: 1px solid var(--line); border-radius: 3px;
+    padding: 1px 5px; font: 11px monospace;
+  }
 </style>
 </head>
 <body>
@@ -230,40 +357,82 @@
       Acting as:
       <input id="actor-input" type="text" placeholder="your name" />
     </span>
-    <span class="who" style="opacity: 0.7;">Build phase: <strong>3 of 8 (Active tab)</strong></span>
     <a href="/">← Operations Portal</a>
   </div>
 </header>
 
 <nav class="tabs">
-  <button data-tab="dashboard" disabled>Dashboard <span class="badge">phase 9</span></button>
-  <button data-tab="pool" disabled>Pool <span class="badge">phase 8</span></button>
-  <button data-tab="active" class="active">Active</button>
-  <button data-tab="capacity" disabled>Capacity <span class="badge">phase 4</span></button>
-  <button data-tab="completed" disabled>Completed <span class="badge">phase 6</span></button>
-  <button data-tab="reports" disabled>Reports <span class="badge">phase 6</span></button>
+  <button data-tab="dashboard">Dashboard</button>
+  <button data-tab="pool">Pool <span class="badge" id="badge-pool">0</span></button>
+  <button data-tab="active" class="active">Active <span class="badge" id="badge-active">0</span></button>
+  <button data-tab="capacity">Capacity</button>
+  <button data-tab="completed">Completed</button>
+  <button data-tab="reports">Reports</button>
   <button data-tab="settings">Settings</button>
 </nav>
 
 <main>
 
-  <!-- ================== ACTIVE — Quick Assign ================== -->
+  <!-- ========== DASHBOARD ========== -->
+  <section class="panel" id="panel-dashboard">
+    <h2 class="page-title">Dashboard</h2>
+    <div class="page-sub">Snapshot of today + pending alerts.</div>
+
+    <div class="tiles" id="dashboard-tiles">
+      <div class="tile pool" data-tab="pool"><div class="label">Pool</div><div class="value">—</div><div class="sub">new tasks waiting</div></div>
+      <div class="tile active-tile" data-tab="active"><div class="label">Active</div><div class="value">—</div><div class="sub">staged for assignment</div></div>
+      <div class="tile cap" data-tab="capacity"><div class="label">Today's capacity</div><div class="value">—</div><div class="sub">used / total</div></div>
+      <div class="tile aged" data-tab="capacity"><div class="label">Aged 🟡</div><div class="value">—</div><div class="sub">leftovers from past days</div></div>
+    </div>
+
+    <div id="dashboard-banners"></div>
+  </section>
+
+  <!-- ========== POOL ========== -->
+  <section class="panel" id="panel-pool">
+    <h2 class="page-title">Pool</h2>
+    <div class="page-sub">Tasks pulled from Zoho (or sent back from Active). Move to Active to stage for assignment.</div>
+
+    <div class="toolbar">
+      <button class="btn" id="btn-sync-now">⟳ Sync now (Zoho)</button>
+      <span class="muted" id="last-sync-text">Loading…</span>
+    </div>
+
+    <table class="std">
+      <thead>
+        <tr>
+          <th style="width: 30px;"><input type="checkbox" id="pool-check-all" /></th>
+          <th>Task ID</th>
+          <th>Task name</th>
+          <th>Project</th>
+          <th>Priority</th>
+          <th>Source</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="pool-rows"><tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Loading…</td></tr></tbody>
+    </table>
+
+    <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
+      <span class="muted" id="pool-summary"></span>
+      <button class="btn" id="btn-bulk-active" disabled>Move selected to Active</button>
+    </div>
+  </section>
+
+  <!-- ========== ACTIVE — Quick Assign ========== -->
   <section class="panel active" id="panel-active">
     <h2 class="page-title">Active — Quick Assign</h2>
     <div class="page-sub">Pick designer + date + duration inline on each row, then click Assign. Add ad-hoc tasks (not from Zoho) directly here when a designer has free time.</div>
 
-    <!-- Add ad-hoc task -->
     <div class="add-row adhoc">
       <strong>+ Add ad-hoc task</strong>
       <input class="grow" id="adhoc-name" type="text" placeholder="Task name (e.g. Fix sponsor banner spacing)" maxlength="200" />
-      <select id="adhoc-tag">
-        <option value="">— Tag (optional) —</option>
-      </select>
+      <select id="adhoc-tag"><option value="">— Tag (optional) —</option></select>
       <input id="adhoc-project" type="text" placeholder="Project / context (optional)" style="width: 220px;" maxlength="120" />
       <button class="btn" onclick="addAdhocTask()">Add to Active</button>
     </div>
 
-    <table class="std assign-table" style="margin-top: 12px;">
+    <table class="std assign-table" style="margin-top:12px;">
       <thead>
         <tr>
           <th style="min-width: 240px;">Task</th>
@@ -275,23 +444,100 @@
           <th style="width: 240px;">Action</th>
         </tr>
       </thead>
-      <tbody id="active-rows">
-        <tr><td colspan="7" style="text-align: center; color: var(--muted); padding: 24px;">Loading…</td></tr>
-      </tbody>
+      <tbody id="active-rows"><tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Loading…</td></tr></tbody>
     </table>
-
-    <div style="margin-top: 12px; color: var(--muted); font-size: 12px;" id="active-summary"></div>
+    <div style="margin-top:12px; color:var(--muted); font-size:12px;" id="active-summary"></div>
   </section>
 
-  <!-- ================== SETTINGS ================== -->
+  <!-- ========== CAPACITY (Today / Week / Kanban) ========== -->
+  <section class="panel" id="panel-capacity">
+    <h2 class="page-title">Capacity</h2>
+    <div class="page-sub">Designer schedules. Switch between Today, Week, and Kanban views.</div>
+
+    <div class="subtabs">
+      <button data-sub="today" class="active">Today</button>
+      <button data-sub="week">Week</button>
+      <button data-sub="kanban">Kanban</button>
+      <input type="date" id="cap-date" style="margin-left:12px;" />
+      <span class="muted" id="cap-summary"></span>
+    </div>
+
+    <div class="subpanel active" id="sub-today" data-cap="today"><div class="placeholder"><span class="emoji">⏳</span><h3>Loading…</h3></div></div>
+    <div class="subpanel" id="sub-week" data-cap="week"><div class="placeholder"><span class="emoji">⏳</span><h3>Click "Week" to load</h3></div></div>
+    <div class="subpanel" id="sub-kanban" data-cap="kanban"><div class="placeholder"><span class="emoji">⏳</span><h3>Click "Kanban" to load</h3></div></div>
+  </section>
+
+  <!-- ========== COMPLETED ========== -->
+  <section class="panel" id="panel-completed">
+    <h2 class="page-title">Completed</h2>
+    <div class="page-sub">Tasks marked Done. Filter by date range and designer.</div>
+
+    <div class="toolbar">
+      <span class="muted">From</span>
+      <input type="date" id="cmp-from" />
+      <span class="muted">to</span>
+      <input type="date" id="cmp-to" />
+      <select id="cmp-designer"><option value="">All designers</option></select>
+      <button class="btn" id="btn-cmp-load">Load</button>
+    </div>
+
+    <table class="std">
+      <thead>
+        <tr>
+          <th>Done at</th>
+          <th>Task</th>
+          <th>Project / Tag</th>
+          <th>Designer</th>
+          <th>Hours</th>
+          <th>On time?</th>
+        </tr>
+      </thead>
+      <tbody id="cmp-rows"><tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">Pick a date range and click Load.</td></tr></tbody>
+    </table>
+  </section>
+
+  <!-- ========== REPORTS ========== -->
+  <section class="panel" id="panel-reports">
+    <h2 class="page-title">Reports</h2>
+    <div class="page-sub">Per-designer efficiency over time. Daily numbers freeze at 8 pm; monthly is the average of working days.</div>
+
+    <div class="toolbar">
+      <span class="muted">From</span>
+      <input type="date" id="rep-from" />
+      <span class="muted">to</span>
+      <input type="date" id="rep-to" />
+      <select id="rep-designer"><option value="">All designers</option></select>
+      <button class="btn" id="btn-rep-load">Load</button>
+    </div>
+
+    <div class="report-grid">
+      <div class="chart-card">
+        <h3 id="rep-chart-title">Daily efficiency</h3>
+        <div class="barchart" id="rep-barchart"></div>
+        <div style="display:flex; justify-content:space-between; margin-top:30px; font-size:12px; color:var(--muted);">
+          <div>Range: <strong id="rep-range" style="color:var(--ink); font-size:13px;">—</strong></div>
+          <div>Series points: <strong id="rep-count" style="color:var(--ink);">0</strong></div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <h3>Team leaderboard</h3>
+        <ul class="leaderboard" id="rep-leaderboard"><li><span class="muted">Loading…</span></li></ul>
+        <div style="margin-top: 14px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 10px;">
+          Team eff: <strong id="rep-team-pct" style="color:var(--ink);">—</strong>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== SETTINGS ========== -->
   <section class="panel" id="panel-settings">
     <h2 class="page-title">Settings</h2>
-    <div class="page-sub">Designer roster, ad-hoc tags, and Zoho connection (last one coming in Phase 8).</div>
+    <div class="page-sub">Designer roster, ad-hoc tags, and Zoho connection.</div>
 
     <div class="section">
       <h3>Designers</h3>
-      <div class="sub">Add team members here. Each gets a personal read-only URL with a 4-digit PIN. Designers don't log in to this app — they only view their queue.</div>
-
+      <div class="sub">Each gets a personal read-only URL with a 4-digit PIN.</div>
       <table class="std" id="designer-table">
         <thead>
           <tr>
@@ -302,40 +548,41 @@
             <th style="width: 200px;"></th>
           </tr>
         </thead>
-        <tbody id="designer-rows">
-          <tr><td colspan="5" style="text-align: center; color: var(--muted); padding: 20px;">Loading…</td></tr>
-        </tbody>
+        <tbody id="designer-rows"><tr><td colspan="5" style="text-align:center; color:var(--muted); padding:20px;">Loading…</td></tr></tbody>
       </table>
-
       <div class="add-row">
         <strong>+ Add designer</strong>
         <input class="name" id="new-name" type="text" placeholder="Full name (e.g. Aniket Gupta)" maxlength="60" />
-        <input class="pin"  id="new-pin"  type="text" placeholder="4-digit PIN" maxlength="4" inputmode="numeric" pattern="\d{4}" />
+        <input class="pin"  id="new-pin"  type="text" placeholder="4-digit PIN" maxlength="4" inputmode="numeric" />
         <button class="btn" id="btn-add">Add</button>
       </div>
     </div>
 
     <div class="section">
       <h3>Ad-hoc task tags</h3>
-      <div class="sub">Tags shown when adding ad-hoc tasks in Active. Editing the list comes in a later phase.</div>
-      <div id="tags-list" style="display: flex; flex-wrap: wrap; gap: 8px;">
-        <span style="color: var(--muted); font-size: 12px;">Loading tags…</span>
-      </div>
+      <div class="sub">Editing the list comes in a later phase.</div>
+      <div id="tags-list" style="display:flex; flex-wrap:wrap; gap:8px;"><span class="muted">Loading tags…</span></div>
     </div>
 
     <div class="section">
       <h3>Zoho connection</h3>
-      <div class="sub">OAuth client + Designing-tag filter. Wired up in Phase 8.</div>
-      <span class="pill red">Not connected yet</span>
+      <div class="sub">OAuth credentials needed for the 5-min auto-sync of "Designing"-tagged tasks. Get these from <a href="https://api-console.zoho.in/" target="_blank">api-console.zoho.in</a>.</div>
+      <div id="zoho-status-banner"></div>
+      <div style="display: grid; grid-template-columns: max-content 1fr; gap: 8px 14px; align-items: center; max-width: 720px;">
+        <label class="muted">Client ID</label><input type="text" id="z-client-id" placeholder="(unset)" />
+        <label class="muted">Client Secret</label><input type="password" id="z-client-secret" placeholder="(unset)" />
+        <label class="muted">Refresh Token</label><input type="password" id="z-refresh-token" placeholder="(unset)" />
+        <label class="muted">Portal ID</label><input type="text" id="z-portal-id" placeholder="e.g. yotser" />
+        <label class="muted">Designing Tag ID <span style="font-size:11px;">(optional)</span></label><input type="text" id="z-tag-id" placeholder="numeric ID" />
+        <label class="muted">Designing Tag Name <span style="font-size:11px;">(used if no ID)</span></label><input type="text" id="z-tag-name" placeholder="Designing" />
+      </div>
+      <div style="margin-top:14px; display:flex; gap:8px;">
+        <button class="btn" id="btn-zoho-save">Save settings</button>
+        <button class="btn ghost" id="btn-zoho-test">Test sync now</button>
+      </div>
+      <div id="zoho-recent" style="margin-top: 18px;"></div>
     </div>
   </section>
-
-  <!-- Other tabs (placeholders) -->
-  <section class="panel" id="panel-dashboard"><div class="placeholder"><div class="emoji">📊</div><h3>Dashboard</h3><p>Tile counts + alerts. Coming in Phase 9.</p></div></section>
-  <section class="panel" id="panel-pool"><div class="placeholder"><div class="emoji">📥</div><h3>Pool</h3><p>Tasks pulled from Zoho. Coming in Phase 8.</p></div></section>
-  <section class="panel" id="panel-capacity"><div class="placeholder"><div class="emoji">📅</div><h3>Capacity</h3><p>Today / Week / Kanban views. Coming in Phase 4.</p></div></section>
-  <section class="panel" id="panel-completed"><div class="placeholder"><div class="emoji">✓</div><h3>Completed</h3><p>Done tasks archive. Coming in Phase 6.</p></div></section>
-  <section class="panel" id="panel-reports"><div class="placeholder"><div class="emoji">📈</div><h3>Reports</h3><p>Per-designer efficiency. Coming in Phase 6.</p></div></section>
 
   <div class="footer-strip">
     Mounted at <code>/designer-tasks/</code> · Sub-app of <code>operation.yotser.in</code>
@@ -354,14 +601,26 @@ function showTab(name) {
   document.querySelectorAll('nav.tabs button').forEach(b => {
     b.classList.toggle('active', b.dataset.tab === name);
   });
-  document.querySelectorAll('.panel').forEach(p => {
+  document.querySelectorAll('main > .panel').forEach(p => {
     p.classList.toggle('active', p.id === 'panel-' + name);
   });
-  if (name === 'active')   { loadActiveTasks(); loadAvailability(); loadTagsForAdhoc(); }
-  if (name === 'settings') { loadDesigners(); loadTags(); }
+  if (name === 'dashboard') loadDashboard();
+  if (name === 'pool')      loadPool();
+  if (name === 'active')    { loadActiveTasks(); loadAvailability(); loadTagsForAdhoc(); }
+  if (name === 'capacity')  loadCapacityActive();
+  if (name === 'completed') initCompletedTab();
+  if (name === 'reports')   initReportsTab();
+  if (name === 'settings')  { loadDesigners(); loadTags(); loadZohoStatus(); }
 }
-document.querySelectorAll('nav.tabs button').forEach(b => {
-  if (!b.disabled) b.addEventListener('click', () => showTab(b.dataset.tab));
+document.querySelectorAll('nav.tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+document.querySelectorAll('.tile[data-tab]').forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
+
+document.querySelectorAll('.subtabs button[data-sub]').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.subtabs button[data-sub]').forEach(x => x.classList.toggle('active', x === b));
+    document.querySelectorAll('.subpanel[data-cap]').forEach(p => p.classList.toggle('active', p.id === 'sub-' + b.dataset.sub));
+    loadCapacityActive();
+  });
 });
 
 function toast(msg, kind) {
@@ -370,7 +629,6 @@ function toast(msg, kind) {
   el.className = 'toast show ' + (kind || '');
   setTimeout(() => { el.className = 'toast ' + (kind || ''); }, 2800);
 }
-
 async function api(method, path, body) {
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if (body !== undefined) opts.body = JSON.stringify(body);
@@ -384,154 +642,191 @@ async function api(method, path, body) {
   }
   return data;
 }
-
-function escapeHtml(s) {
-  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
-}
+function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
 function escapeAttr(s) { return escapeHtml(s).replace(/'/g, '&#39;'); }
-function today() { return new Date().toISOString().slice(0, 10); }
+function todayISO() { return new Date().toISOString().slice(0, 10); }
+function lastNDays(n) { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); }
+function firstOfMonth() { const d = new Date(); d.setDate(1); return d.toISOString().slice(0, 10); }
+function fmtMinutes(m) {
+  if (m == null || m === 0) return '0m';
+  const h = Math.floor(m / 60), mm = m % 60;
+  if (h && mm) return `${h}h ${mm}m`;
+  if (h) return `${h}h`;
+  return `${mm}m`;
+}
 function tagPillClass(name) {
   if (!name) return 'pill tag-default';
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   const known = ['internal','rework','training','admin','meeting','misc'];
   return 'pill ' + (known.includes(slug) ? `tag-${slug}` : 'tag-default');
 }
-function fmtMinutes(m) {
-  if (!m) return '0m';
-  const h = Math.floor(m / 60), mm = m % 60;
-  if (h && mm) return `${h}h ${mm}m`;
-  if (h) return `${h}h`;
-  return `${mm}m`;
-}
 function copyToClipboard(text, btn) {
   navigator.clipboard.writeText(text)
     .then(() => { const old = btn.textContent; btn.textContent = '✓'; setTimeout(() => btn.textContent = old, 1200); })
     .catch(() => toast('Copy failed', 'error'));
 }
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + 'T00:00:00'); d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function prettyDate(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+}
 
-// Actor (assigner identity for audit log)
 const actorInput = document.getElementById('actor-input');
 actorInput.value = localStorage.getItem('dts_actor') || '';
-actorInput.addEventListener('change', () => {
-  localStorage.setItem('dts_actor', actorInput.value.trim());
-});
+actorInput.addEventListener('change', () => localStorage.setItem('dts_actor', actorInput.value.trim()));
 function getActor() { return (actorInput.value || '').trim() || 'unknown'; }
 
-// =========================== designers ===========================
-async function loadDesigners() {
+// =========================== Dashboard ===========================
+async function loadDashboard() {
   try {
-    const list = await api('GET', '/api/designers');
-    renderDesigners(list);
-  } catch (e) { toast('Failed to load designers: ' + e.message, 'error'); }
+    const d = await api('GET', '/api/dashboard');
+    const tiles = document.getElementById('dashboard-tiles').children;
+    tiles[0].querySelector('.value').textContent = d.tiles.pool;
+    tiles[1].querySelector('.value').textContent = d.tiles.active;
+    tiles[2].querySelector('.value').textContent = d.tiles.capacity_pct + '%';
+    tiles[2].querySelector('.sub').textContent   = `${fmtMinutes(d.tiles.capacity_used_min)} of ${fmtMinutes(d.tiles.capacity_total_min)}`;
+    tiles[3].querySelector('.value').textContent = d.tiles.aged;
+
+    document.getElementById('badge-pool').textContent   = d.tiles.pool;
+    document.getElementById('badge-active').textContent = d.tiles.active;
+
+    const banners = document.getElementById('dashboard-banners');
+    let html = '';
+    if (d.banners.aged && d.banners.aged.length > 0) {
+      const list = d.banners.aged.map(a => `<li>${escapeHtml(a.designer_name)} · "${escapeHtml(a.task_name)}" (from ${escapeHtml(a.assigned_date)})</li>`).join('');
+      html += `<div class="banner yellow">
+        <div>🟡 <strong>${d.banners.aged.length} aged task${d.banners.aged.length===1?'':'s'}</strong> from past days are still open.<details><summary style="cursor:pointer; font-size:12px;">show all</summary><ul style="margin:6px 0 0 18px; font-size:12px;">${list}</ul></details></div>
+        <button onclick="showTab('capacity')">View Today →</button>
+      </div>`;
+    }
+    if (d.banners.overload && d.banners.overload.length > 0) {
+      const list = d.banners.overload.map(o => `${escapeHtml(o.designer_name)} (${fmtMinutes(o.minutes_assigned)} = ${fmtMinutes(o.over_by)} over)`).join(', ');
+      html += `<div class="banner red">
+        <div>🔴 <strong>Overloaded today:</strong> ${list}</div>
+        <button onclick="showTab('capacity')">Fix →</button>
+      </div>`;
+    }
+    if (d.banners.sync_failure) {
+      const ago = new Date(d.banners.sync_failure.started_at).toLocaleString();
+      html += `<div class="banner warn">
+        <div>⚠️ Last Zoho sync failed at ${escapeHtml(ago)}: ${escapeHtml(d.banners.sync_failure.error_message || '')}</div>
+        <button onclick="showTab('settings')">Fix in Settings</button>
+      </div>`;
+    }
+    if (!html) html = `<div class="banner ok"><span>✓ Nothing flagged. Team capacity at ${d.tiles.capacity_pct}%.</span><span></span></div>`;
+    banners.innerHTML = html;
+  } catch (e) { toast('Dashboard failed: ' + e.message, 'error'); }
 }
 
-function renderDesigners(list) {
-  const tbody = document.getElementById('designer-rows');
-  if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--muted); padding: 24px;">
-      No designers yet. Add one below.
-    </td></tr>`;
+// =========================== Pool ===========================
+let poolTasks = [];
+async function loadPool() {
+  try {
+    poolTasks = await api('GET', '/api/pool');
+    renderPool();
+    document.getElementById('badge-pool').textContent = poolTasks.length;
+  } catch (e) { toast('Pool failed: ' + e.message, 'error'); }
+  try {
+    const sync = await api('GET', '/api/zoho/last-sync');
+    const t = document.getElementById('last-sync-text');
+    if (!sync) t.textContent = 'No sync yet — set up Zoho in Settings.';
+    else if (sync.ok === false) t.textContent = `Last sync FAILED ${new Date(sync.started_at).toLocaleTimeString()}: ${sync.error_message || ''}`;
+    else t.textContent = `Last sync ${new Date(sync.started_at).toLocaleTimeString()} · ${sync.tasks_new || 0} new of ${sync.tasks_seen || 0} seen`;
+  } catch (e) { /* silent */ }
+}
+function renderPool() {
+  const tbody = document.getElementById('pool-rows');
+  if (poolTasks.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Pool is empty. Either Zoho hasn't synced any tasks yet, or none have the "Designing" tag.</td></tr>`;
+    document.getElementById('pool-summary').textContent = '';
+    document.getElementById('btn-bulk-active').disabled = true;
     return;
   }
-  tbody.innerHTML = list.map(d => {
-    const url = `${API}/d/${d.url_token}`;
-    const fullUrl = location.origin + url;
-    const status = d.is_active ? `<span class="pill green">Active</span>` : `<span class="pill red">Inactive</span>`;
-    return `<tr data-id="${d.id}">
-      <td>${escapeHtml(d.name)}</td>
-      <td><code>${escapeHtml(url)}</code><button class="copy-btn" onclick="copyToClipboard('${fullUrl}', this)">copy</button></td>
-      <td>••••</td>
-      <td>${status}</td>
-      <td style="text-align: right;">
-        <button class="icon-btn" onclick="startEdit(${d.id})">✎ Edit</button>
-        <button class="icon-btn" onclick="rotateToken(${d.id})" title="Rotate URL token">↻ Token</button>
-        <button class="icon-btn danger" onclick="deleteDesigner(${d.id}, '${escapeAttr(d.name)}')">✕</button>
-      </td>
-    </tr>`;
-  }).join('');
+  tbody.innerHTML = poolTasks.map(t => `<tr data-id="${t.id}">
+    <td><input type="checkbox" class="pool-check" data-id="${t.id}" /></td>
+    <td><code>${escapeHtml(t.zoho_task_id || '—')}</code></td>
+    <td><strong>${escapeHtml(t.task_name)}</strong></td>
+    <td><span class="pill lav">${escapeHtml(t.project_name || '—')}</span></td>
+    <td>${escapeHtml(t.zoho_priority_at_import || '—')}</td>
+    <td><span class="source-badge ${t.source}">${t.source.toUpperCase()}</span></td>
+    <td><button class="btn" onclick="movePoolToActive(${t.id})">→ Active</button></td>
+  </tr>`).join('');
+  document.getElementById('pool-summary').textContent = `${poolTasks.length} task${poolTasks.length===1?'':'s'} in pool`;
+  bindPoolChecks();
 }
-
-document.getElementById('btn-add').addEventListener('click', addDesigner);
-document.getElementById('new-pin').addEventListener('keydown', (e) => { if (e.key === 'Enter') addDesigner(); });
-
-async function addDesigner() {
-  const name = document.getElementById('new-name').value.trim();
-  const pin  = document.getElementById('new-pin').value.trim();
-  if (!name) return toast('Enter a name', 'error');
-  if (!/^\d{4}$/.test(pin)) return toast('PIN must be 4 digits', 'error');
+function bindPoolChecks() {
+  const all = document.getElementById('pool-check-all');
+  all.checked = false;
+  all.onchange = () => {
+    document.querySelectorAll('.pool-check').forEach(c => c.checked = all.checked);
+    updateBulkBtn();
+  };
+  document.querySelectorAll('.pool-check').forEach(c => c.addEventListener('change', updateBulkBtn));
+  updateBulkBtn();
+}
+function updateBulkBtn() {
+  const checked = document.querySelectorAll('.pool-check:checked').length;
+  const btn = document.getElementById('btn-bulk-active');
+  btn.disabled = checked === 0;
+  btn.textContent = checked === 0 ? 'Move selected to Active' : `Move ${checked} to Active`;
+}
+async function movePoolToActive(id) {
   try {
-    await api('POST', '/api/designers', { name, pin });
-    document.getElementById('new-name').value = '';
-    document.getElementById('new-pin').value  = '';
-    document.getElementById('new-name').focus();
-    toast('Designer added', 'success');
-    loadDesigners();
+    await api('POST', `/api/tasks/${id}/move-to-active`, { actor: getActor() });
+    toast('Moved to Active', 'success');
+    loadPool();
   } catch (e) { toast(e.message, 'error'); }
 }
-
-async function deleteDesigner(id, name) {
-  if (!confirm(`Delete designer "${name}"?\n\nHard delete — historical records that reference them will block deletion.`)) return;
+document.getElementById('btn-bulk-active').addEventListener('click', async () => {
+  const ids = Array.from(document.querySelectorAll('.pool-check:checked')).map(c => parseInt(c.dataset.id));
+  if (ids.length === 0) return;
   try {
-    await api('DELETE', '/api/designers/' + id);
-    toast('Designer deleted', 'success');
-    loadDesigners();
+    const r = await api('POST', '/api/tasks/bulk-move-to-active', { ids, actor: getActor() });
+    toast(`Moved ${r.moved} to Active`, 'success');
+    loadPool();
   } catch (e) { toast(e.message, 'error'); }
-}
-
-async function rotateToken(id) {
-  if (!confirm('Generate a new public URL for this designer?\n\nThe old URL will stop working immediately. The designer must rebookmark.')) return;
+});
+document.getElementById('btn-sync-now').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-sync-now');
+  btn.disabled = true; btn.textContent = '⟳ Syncing…';
   try {
-    await api('POST', '/api/designers/' + id + '/rotate-token');
-    toast('URL rotated', 'success');
-    loadDesigners();
-  } catch (e) { toast(e.message, 'error'); }
-}
+    const r = await api('POST', '/api/zoho/sync', { actor: getActor() });
+    toast(`Sync OK · ${r.tasks_new} new of ${r.tasks_seen} seen`, 'success');
+    loadPool();
+  } catch (e) { toast('Sync failed: ' + e.message, 'error'); }
+  finally { btn.disabled = false; btn.textContent = '⟳ Sync now (Zoho)'; }
+});
 
-function startEdit(id) {
-  const row = document.querySelector(`#designer-rows tr[data-id="${id}"]`);
-  if (!row) return;
-  const name = row.children[0].textContent;
-  row.classList.add('editing');
-  row.innerHTML = `
-    <td><input class="edit-name" value="${escapeAttr(name)}" /></td>
-    <td colspan="2"><input class="edit-pin" placeholder="New PIN (leave blank to keep)" maxlength="4" inputmode="numeric" /></td>
-    <td><label style="font-size: 12px;"><input class="edit-active" type="checkbox" checked> Active</label></td>
-    <td style="text-align: right;">
-      <button class="btn" onclick="saveEdit(${id})">Save</button>
-      <button class="icon-btn" onclick="loadDesigners()">Cancel</button>
-    </td>`;
-}
+// =========================== Active (existing flow) ===========================
+let availability = { date: todayISO(), designers: [], day_minutes: 480 };
+let activeTasks = [];
+const taskSlices = {};
 
-async function saveEdit(id) {
-  const row = document.querySelector(`#designer-rows tr[data-id="${id}"]`);
-  if (!row) return;
-  const body = {};
-  const newName   = row.querySelector('.edit-name').value.trim();
-  const newPin    = row.querySelector('.edit-pin').value.trim();
-  const newActive = row.querySelector('.edit-active').checked;
-  if (newName) body.name = newName;
-  if (newPin)  {
-    if (!/^\d{4}$/.test(newPin)) return toast('PIN must be 4 digits', 'error');
-    body.pin = newPin;
+async function loadAvailability(date) {
+  date = date || todayISO();
+  try {
+    availability = await api('GET', `/api/availability?date=${date}`);
+    refreshDesignerOptions();
+  } catch (e) { /* silent */ }
+}
+function designerOptionsHTML(selectedId) {
+  const opts = ['<option value="">— pick designer —</option>'];
+  for (const d of availability.designers) {
+    const tag = d.is_overloaded
+      ? `(OVERLOADED ${fmtMinutes(d.minutes_assigned - availability.day_minutes)} over)`
+      : `(${fmtMinutes(d.minutes_free)} free)`;
+    const sel = d.id == selectedId ? 'selected' : '';
+    opts.push(`<option value="${d.id}" ${sel}>${escapeHtml(d.name)} ${tag}</option>`);
   }
-  body.is_active = newActive;
-  try {
-    await api('PATCH', '/api/designers/' + id, body);
-    toast('Designer updated', 'success');
-    loadDesigners();
-  } catch (e) { toast(e.message, 'error'); }
+  return opts.join('');
 }
-
-// =========================== tags ===========================
-async function loadTags() {
-  try {
-    const list = await api('GET', '/api/tags');
-    document.getElementById('tags-list').innerHTML = list.length
-      ? list.map(t => `<span class="${tagPillClass(t.name)}" style="font-size: 13px; padding: 4px 12px;">${escapeHtml(t.name)}</span>`).join('')
-      : '<span style="color: var(--muted); font-size: 12px;">No tags yet.</span>';
-  } catch (e) {
-    document.getElementById('tags-list').innerHTML = `<span style="color: var(--red); font-size: 12px;">Failed to load tags</span>`;
-  }
+function refreshDesignerOptions() {
+  document.querySelectorAll('.assign-row select[data-field="designer"]').forEach(sel => {
+    const cur = sel.value; sel.innerHTML = designerOptionsHTML(cur);
+  });
 }
 
 let cachedTags = null;
@@ -544,84 +839,38 @@ async function loadTagsForAdhoc() {
   } catch (e) { /* silent */ }
 }
 
-// =========================== availability ===========================
-let availability = { date: today(), designers: [], day_minutes: 480 };
-
-async function loadAvailability(date) {
-  date = date || today();
-  try {
-    availability = await api('GET', `/api/availability?date=${date}`);
-    refreshDesignerOptions();
-  } catch (e) { toast('Failed to load availability: ' + e.message, 'error'); }
-}
-
-function designerOptionsHTML(selectedId) {
-  const opts = ['<option value="">— pick designer —</option>'];
-  for (const d of availability.designers) {
-    const tag = d.is_overloaded
-      ? `(OVERLOADED ${fmtMinutes(d.minutes_assigned - availability.day_minutes)} over)`
-      : `(${fmtMinutes(d.minutes_free)} free)`;
-    const sel = d.id == selectedId ? 'selected' : '';
-    opts.push(`<option value="${d.id}" ${sel}>${escapeHtml(d.name)} ${tag}</option>`);
-  }
-  return opts.join('');
-}
-
-function refreshDesignerOptions() {
-  // Update designer dropdowns in the active table without re-rendering everything
-  document.querySelectorAll('.assign-row select[data-field="designer"]').forEach(sel => {
-    const cur = sel.value;
-    sel.innerHTML = designerOptionsHTML(cur);
-  });
-}
-
-// =========================== active tasks ===========================
-let activeTasks = [];
-const taskSlices = {};   // taskId -> [{date, hours, minutes}, ...]
-
 async function loadActiveTasks() {
   try {
     activeTasks = await api('GET', '/api/tasks?state=active');
     renderActiveTasks();
-  } catch (e) { toast('Failed to load active tasks: ' + e.message, 'error'); }
+    document.getElementById('badge-active').textContent = activeTasks.length;
+  } catch (e) { toast('Failed to load active: ' + e.message, 'error'); }
 }
-
 function renderActiveTasks() {
   const tbody = document.getElementById('active-rows');
   const summary = document.getElementById('active-summary');
-
   if (activeTasks.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--muted); padding: 24px;">
-      No active tasks. Add an ad-hoc task above, or wait for Phase 8 (Zoho sync) to bring tasks in from the Pool.
-    </td></tr>`;
-    summary.textContent = '';
-    return;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">No active tasks. Add an ad-hoc task above, or move tasks from the Pool.</td></tr>`;
+    summary.textContent = ''; return;
   }
-
   let html = '';
   for (const t of activeTasks) {
-    if (!taskSlices[t.id]) {
-      taskSlices[t.id] = [{ date: today(), hours: '', minutes: 0 }];
-    }
+    if (!taskSlices[t.id]) taskSlices[t.id] = [{ date: todayISO(), hours: '', minutes: 0 }];
     const slices = taskSlices[t.id];
-    slices.forEach((slice, idx) => {
-      html += renderSliceRow(t, slice, idx, idx === 0);
-    });
+    slices.forEach((slice, idx) => { html += renderSliceRow(t, slice, idx, idx === 0); });
   }
   tbody.innerHTML = html;
-
   const counts = activeTasks.reduce((acc, t) => { acc[t.source] = (acc[t.source] || 0) + 1; return acc; }, {});
-  summary.textContent = `${activeTasks.length} active task${activeTasks.length === 1 ? '' : 's'}`
-    + (counts.zoho ? ` · ${counts.zoho} from Zoho` : '')
-    + (counts.adhoc ? ` · ${counts.adhoc} ad-hoc` : '');
+  summary.textContent = `${activeTasks.length} task${activeTasks.length===1?'':'s'}` +
+    (counts.zoho ? ` · ${counts.zoho} from Zoho` : '') +
+    (counts.adhoc ? ` · ${counts.adhoc} ad-hoc` : '');
 }
-
 function renderSliceRow(task, slice, idx, isFirst) {
   const taskId = task.id;
   if (isFirst) {
     const projectCell = task.project_name
       ? `<span class="pill ${task.source === 'adhoc' ? 'tag-default' : 'lav'}">${escapeHtml(task.project_name)}</span>`
-      : (task.tag_name ? '' : '<span style="color:var(--muted); font-size: 11px;">—</span>');
+      : (task.tag_name ? '' : '<span style="color:var(--muted); font-size:11px;">—</span>');
     const tagCell = task.tag_name
       ? `${task.project_name ? '<br>' : ''}<span class="${tagPillClass(task.tag_name)}">${escapeHtml(task.tag_name)}</span>`
       : '';
@@ -629,51 +878,29 @@ function renderSliceRow(task, slice, idx, isFirst) {
       ? `${escapeHtml(task.zoho_task_id || '')} · ${escapeHtml(task.zoho_priority_at_import || 'Normal')} priority`
       : `Created by ${escapeHtml(task.created_by || 'unknown')}`;
     return `<tr class="assign-row ${task.source === 'adhoc' ? 'adhoc' : ''}" data-task-id="${taskId}" data-slice-idx="${idx}">
-      <td>
-        <div class="task-title">
-          <span class="source-badge ${task.source}">${task.source.toUpperCase()}</span>
-          ${escapeHtml(task.task_name)}
-        </div>
-        <div class="task-id">${subText}</div>
-      </td>
+      <td><div class="task-title"><span class="source-badge ${task.source}">${task.source.toUpperCase()}</span>${escapeHtml(task.task_name)}</div><div class="task-id">${subText}</div></td>
       <td>${projectCell}${tagCell}</td>
-      <td>
-        <select class="inline-input" data-field="designer" data-task-id="${taskId}">
-          ${designerOptionsHTML('')}
-        </select>
-      </td>
+      <td><select class="inline-input" data-field="designer" data-task-id="${taskId}">${designerOptionsHTML('')}</select></td>
       <td><input class="inline-input" type="date" value="${slice.date}" data-field="date" data-task-id="${taskId}" data-slice-idx="${idx}" /></td>
       <td><input class="inline-input" type="number" min="0" max="8" value="${slice.hours}" placeholder="0" data-field="hours" data-task-id="${taskId}" data-slice-idx="${idx}" /></td>
-      <td>
-        <select class="inline-input" data-field="minutes" data-task-id="${taskId}" data-slice-idx="${idx}">
-          ${[0,15,30,45].map(v => `<option value="${v}" ${slice.minutes==v?'selected':''}>${String(v).padStart(2,'0')}</option>`).join('')}
-        </select>
-      </td>
+      <td><select class="inline-input" data-field="minutes" data-task-id="${taskId}" data-slice-idx="${idx}">${[0,15,30,45].map(v => `<option value="${v}" ${slice.minutes==v?'selected':''}>${String(v).padStart(2,'0')}</option>`).join('')}</select></td>
       <td>
         <button class="btn" onclick="assignTask(${taskId})">Assign</button>
-        <button class="btn ghost" onclick="addSlice(${taskId})" title="Add another day for same designer">+ Slice</button>
+        <button class="btn ghost" onclick="addSlice(${taskId})" title="Add another day">+ Slice</button>
+        <button class="icon-btn" onclick="sendBack(${taskId})" title="Send back to Pool">↩</button>
         <button class="icon-btn danger" onclick="cancelTask(${taskId}, '${escapeAttr(task.task_name)}')" title="Cancel task">✕</button>
       </td>
     </tr>`;
   }
-  // continuation slice (locked designer)
   return `<tr class="assign-row slice-extra" data-task-id="${taskId}" data-slice-idx="${idx}">
     <td colspan="2" class="slice-label">↳ same task, additional day (same designer as row above)</td>
-    <td><span style="color:var(--muted); font-size: 12px; padding-left: 6px;">(continues)</span></td>
+    <td><span style="color:var(--muted); font-size:12px; padding-left:6px;">(continues)</span></td>
     <td><input class="inline-input" type="date" value="${slice.date}" data-field="date" data-task-id="${taskId}" data-slice-idx="${idx}" /></td>
     <td><input class="inline-input" type="number" min="0" max="8" value="${slice.hours}" placeholder="0" data-field="hours" data-task-id="${taskId}" data-slice-idx="${idx}" /></td>
-    <td>
-      <select class="inline-input" data-field="minutes" data-task-id="${taskId}" data-slice-idx="${idx}">
-        ${[0,15,30,45].map(v => `<option value="${v}" ${slice.minutes==v?'selected':''}>${String(v).padStart(2,'0')}</option>`).join('')}
-      </select>
-    </td>
-    <td>
-      <button class="icon-btn danger" onclick="removeSlice(${taskId}, ${idx})">✕ Remove slice</button>
-    </td>
+    <td><select class="inline-input" data-field="minutes" data-task-id="${taskId}" data-slice-idx="${idx}">${[0,15,30,45].map(v => `<option value="${v}" ${slice.minutes==v?'selected':''}>${String(v).padStart(2,'0')}</option>`).join('')}</select></td>
+    <td><button class="icon-btn danger" onclick="removeSlice(${taskId}, ${idx})">✕ Remove slice</button></td>
   </tr>`;
 }
-
-// Capture inline edits into taskSlices state on every change
 document.addEventListener('change', (e) => {
   const t = e.target;
   if (!t.dataset || t.dataset.taskId === undefined) return;
@@ -686,125 +913,533 @@ document.addEventListener('change', (e) => {
   if (t.dataset.field === 'hours')   slice.hours = t.value;
   if (t.dataset.field === 'minutes') slice.minutes = parseInt(t.value);
 });
-
 function addSlice(taskId) {
   if (!taskSlices[taskId]) taskSlices[taskId] = [];
-  // Default: tomorrow if first slice was today, otherwise +1 day from last
   const last = taskSlices[taskId][taskSlices[taskId].length - 1];
-  const nextDate = last ? addDays(last.date, 1) : today();
-  taskSlices[taskId].push({ date: nextDate, hours: '', minutes: 0 });
+  taskSlices[taskId].push({ date: last ? addDays(last.date, 1) : todayISO(), hours: '', minutes: 0 });
   renderActiveTasks();
 }
 function removeSlice(taskId, idx) {
-  if (!taskSlices[taskId]) return;
-  if (taskSlices[taskId].length <= 1) return;
-  taskSlices[taskId].splice(idx, 1);
-  renderActiveTasks();
+  if (!taskSlices[taskId] || taskSlices[taskId].length <= 1) return;
+  taskSlices[taskId].splice(idx, 1); renderActiveTasks();
 }
-function addDays(dateStr, n) {
-  const d = new Date(dateStr + 'T00:00:00');
-  d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
-}
-
 async function addAdhocTask() {
   const name    = document.getElementById('adhoc-name').value.trim();
   const tagId   = document.getElementById('adhoc-tag').value || null;
   const project = document.getElementById('adhoc-project').value.trim();
   if (!name) return toast('Task name required', 'error');
   try {
-    await api('POST', '/api/tasks', {
-      name,
-      project_name: project || null,
-      tag_id: tagId ? parseInt(tagId) : null,
-      created_by: getActor(),
-    });
-    document.getElementById('adhoc-name').value    = '';
+    await api('POST', '/api/tasks', { name, project_name: project || null, tag_id: tagId ? parseInt(tagId) : null, created_by: getActor() });
+    document.getElementById('adhoc-name').value = '';
     document.getElementById('adhoc-project').value = '';
-    document.getElementById('adhoc-tag').value     = '';
+    document.getElementById('adhoc-tag').value = '';
     document.getElementById('adhoc-name').focus();
     toast('Ad-hoc task added', 'success');
     loadActiveTasks();
   } catch (e) { toast(e.message, 'error'); }
 }
-
 async function assignTask(taskId) {
   const slices = taskSlices[taskId] || [];
   if (slices.length === 0) return toast('No slice', 'error');
-
   const firstRow = document.querySelector(`tr.assign-row[data-task-id="${taskId}"][data-slice-idx="0"]`);
   if (!firstRow) return;
-  const designerSel = firstRow.querySelector('select[data-field="designer"]');
-  const designerId = parseInt(designerSel.value || '0');
+  const designerId = parseInt(firstRow.querySelector('select[data-field="designer"]').value || '0');
   if (!designerId) return toast('Pick a designer', 'error');
 
-  // Build slices payload (minutes = hours*60 + minutes)
   const payload = [];
   for (const s of slices) {
-    const h = parseInt(s.hours || '0');
-    const m = parseInt(s.minutes || '0');
-    const total = h * 60 + m;
+    const total = parseInt(s.hours || '0') * 60 + parseInt(s.minutes || '0');
     if (total > 0) payload.push({ date: s.date, minutes: total });
   }
-  if (payload.length === 0) return toast('Set hours/minutes (must be > 0)', 'error');
+  if (payload.length === 0) return toast('Set hours/minutes', 'error');
 
+  const tryAssign = async (force) => {
+    return await api('POST', `/api/tasks/${taskId}/assign`, { designer_id: designerId, slices: payload, force, actor: getActor() });
+  };
   try {
-    const r = await api('POST', `/api/tasks/${taskId}/assign`, {
-      designer_id: designerId, slices: payload, actor: getActor(),
-    });
+    const r = await tryAssign(false);
     toast(`Assigned to ${r.designer_name}` + (r.overloaded ? ' (OVERLOADED)' : ''), 'success');
     delete taskSlices[taskId];
     await Promise.all([loadActiveTasks(), loadAvailability()]);
   } catch (e) {
     if (e.body && e.body.error === 'overload') {
-      const ovDetails = e.body.overloads.map(o => `${o.date}: ${fmtMinutes(o.over_by)} over (would be ${fmtMinutes(o.total_minutes)})`).join('\n');
-      const ok = confirm(`This will OVERLOAD ${e.body.designer_name}:\n\n${ovDetails}\n\nForce-assign anyway?`);
-      if (!ok) return;
+      const det = e.body.overloads.map(o => `${o.date}: ${fmtMinutes(o.over_by)} over (would be ${fmtMinutes(o.total_minutes)})`).join('\n');
+      if (!confirm(`This will OVERLOAD ${e.body.designer_name}:\n\n${det}\n\nForce-assign?`)) return;
       try {
-        const r = await api('POST', `/api/tasks/${taskId}/assign`, {
-          designer_id: designerId, slices: payload, force: true, actor: getActor(),
-        });
+        const r = await tryAssign(true);
         toast(`Assigned to ${r.designer_name} (OVERLOADED)`, 'success');
         delete taskSlices[taskId];
         await Promise.all([loadActiveTasks(), loadAvailability()]);
       } catch (e2) { toast(e2.message, 'error'); }
-    } else {
-      toast(e.message, 'error');
-    }
+    } else { toast(e.message, 'error'); }
   }
 }
-
-async function cancelTask(taskId, taskName) {
-  const reason = prompt(`Cancel task "${taskName}"?\n\nReason (required):`);
+async function sendBack(taskId) {
+  if (!confirm('Send this task back to the Pool?\nAny existing assignments will be removed.')) return;
+  try {
+    await api('POST', `/api/tasks/${taskId}/send-back`, { actor: getActor() });
+    toast('Sent to Pool', 'success');
+    delete taskSlices[taskId];
+    loadActiveTasks();
+  } catch (e) { toast(e.message, 'error'); }
+}
+async function cancelTask(taskId, name) {
+  const reason = prompt(`Cancel task "${name}"?\n\nReason (required):`);
   if (reason === null) return;
   const trimmed = reason.trim();
-  if (!trimmed) return toast('Reason is required', 'error');
+  if (!trimmed) return toast('Reason required', 'error');
   try {
     await api('POST', `/api/tasks/${taskId}/cancel`, { reason: trimmed, actor: getActor() });
-    toast('Task cancelled', 'success');
+    toast('Cancelled', 'success');
     delete taskSlices[taskId];
     loadActiveTasks();
   } catch (e) { toast(e.message, 'error'); }
 }
 
-// =========================== health ===========================
+// =========================== Capacity ===========================
+function loadCapacityActive() {
+  const sub = document.querySelector('.subtabs button[data-sub].active');
+  const which = sub ? sub.dataset.sub : 'today';
+  const dInp = document.getElementById('cap-date');
+  if (!dInp.value) dInp.value = todayISO();
+  if (which === 'today') loadCapToday();
+  else if (which === 'week') loadCapWeek();
+  else loadCapKanban();
+}
+document.getElementById('cap-date').addEventListener('change', loadCapacityActive);
+
+async function loadCapToday() {
+  const date = document.getElementById('cap-date').value || todayISO();
+  try {
+    const data = await api('GET', `/api/capacity/today?date=${date}`);
+    document.getElementById('cap-summary').textContent = `Team: ${fmtMinutes(data.totals.total_minutes_assigned)} of ${fmtMinutes(data.totals.total_capacity_minutes)} · Aged ${data.totals.aged_total} · Overloaded ${data.totals.overload_count}`;
+    const out = document.getElementById('sub-today');
+    if (data.designers.length === 0) {
+      out.innerHTML = `<div class="placeholder"><div class="emoji">👥</div><h3>No active designers</h3><p>Add some in Settings → Designers.</p></div>`;
+      return;
+    }
+    out.innerHTML = data.designers.map(d => renderTodayRow(d, date)).join('');
+  } catch (e) { toast('Capacity failed: ' + e.message, 'error'); }
+}
+function renderTodayRow(d, date) {
+  const pct = Math.min(100, Math.round((d.minutes_assigned / 480) * 100));
+  const donePct = Math.min(100, Math.round((d.minutes_done / 480) * 100));
+  const overCls = d.is_overloaded ? 'over' : '';
+  const taskCards = (d.assignments || []).map(a => taskCardHTML(a, false)).join('') ||
+    `<div style="color:var(--muted); font-size:12px; padding:8px;">No tasks scheduled.</div>`;
+  const aged = (d.aged_carryover || []).map(a => taskCardHTML(a, true)).join('');
+  const agedSection = aged ? `
+    <div style="margin-top:14px; padding-top:10px; border-top:1px dashed var(--yellow);">
+      <div style="font-size:11px; color:var(--yellow); text-transform:uppercase; letter-spacing:0.06em; font-weight:600; margin-bottom:6px;">🟡 Carrying over from earlier (${d.aged_count})</div>
+      ${aged}
+    </div>` : '';
+  return `<div class="today-row ${d.is_overloaded ? 'overload' : ''}">
+    <div class="row-head">
+      <div class="name">${escapeHtml(d.designer_name)}${d.is_overloaded ? ' 🔴' : ''}${d.aged_count ? ` <span class="pill yellow">🟡 ${d.aged_count}</span>` : ''}</div>
+      <div class="bars">
+        <div class="progress ${overCls}"><div class="fill" style="width:${pct}%"></div></div>
+        <span class="progress-text ${overCls}">${fmtMinutes(d.minutes_assigned)} / 8h${d.minutes_done > 0 ? ` (${fmtMinutes(d.minutes_done)} done)` : ''}</span>
+      </div>
+    </div>
+    ${taskCards}
+    ${agedSection}
+  </div>`;
+}
+function taskCardHTML(a, agedFromCarry) {
+  const cls = ['task-card'];
+  if (a.is_done) cls.push('done');
+  if (agedFromCarry) cls.push('aged');
+  const pills = [];
+  if (a.is_done) pills.push('<span class="pill green">✓ Done</span>');
+  if (agedFromCarry) pills.push(`<span class="pill yellow">From ${escapeHtml(a.assigned_date)}</span>`);
+  if (a.tag_name) pills.push(`<span class="${tagPillClass(a.tag_name)}">${escapeHtml(a.tag_name)}</span>`);
+  const sourceBadge = `<span class="source-badge ${a.source}">${a.source.toUpperCase()}</span>`;
+  return `<div class="${cls.join(' ')}">
+    <div class="info">
+      <div class="title">${sourceBadge}${escapeHtml(a.task_name)}</div>
+      <div class="meta">${escapeHtml(a.project_name || '—')} · ${fmtMinutes(a.minutes)} ${pills.join(' ')}</div>
+    </div>
+    <div class="actions">
+      <button class="btn ${a.is_done ? 'ghost' : 'success'}" onclick="toggleDone(${a.id})">${a.is_done ? 'Undo' : '✓ Done'}</button>
+      <button class="icon-btn" onclick="reassignTask(${a.task_id}, '${escapeAttr(a.task_name)}')">↻ Reassign</button>
+      <button class="icon-btn" onclick="sendBack(${a.task_id})">↩ Pool</button>
+      <button class="icon-btn danger" onclick="cancelTask(${a.task_id}, '${escapeAttr(a.task_name)}')">✕</button>
+    </div>
+  </div>`;
+}
+async function toggleDone(assignmentId) {
+  try {
+    const r = await api('POST', `/api/assignments/${assignmentId}/done`, { actor: getActor() });
+    toast(r.is_done ? (r.all_done ? 'Task complete!' : 'Marked done') : 'Marked undone', 'success');
+    loadCapacityActive();
+  } catch (e) { toast(e.message, 'error'); }
+}
+async function reassignTask(taskId, taskName) {
+  if (availability.designers.length === 0) await loadAvailability();
+  const list = availability.designers.map((d,i) => `${i+1}. ${d.name} (${fmtMinutes(d.minutes_free)} free)`).join('\n');
+  const idx = prompt(`Reassign "${taskName}".\n\nPick designer by number:\n${list}`);
+  if (idx === null) return;
+  const choice = availability.designers[parseInt(idx) - 1];
+  if (!choice) return toast('Invalid choice', 'error');
+  const reason = prompt('Reason for reassignment (required):');
+  if (!reason || !reason.trim()) return toast('Reason required', 'error');
+  try {
+    await api('POST', `/api/tasks/${taskId}/reassign`, {
+      new_designer_id: choice.id, reason: reason.trim(), actor: getActor()
+    });
+    toast(`Reassigned to ${choice.name}`, 'success');
+    loadCapacityActive();
+  } catch (e) {
+    if (e.body && e.body.error === 'overload') {
+      const det = e.body.overloads.map(o => `${o.date}: ${fmtMinutes(o.over_by)} over`).join('\n');
+      if (!confirm(`Will overload ${e.body.designer_name}:\n${det}\n\nForce?`)) return;
+      try {
+        await api('POST', `/api/tasks/${taskId}/reassign`, {
+          new_designer_id: choice.id, reason: reason.trim(), force: true, actor: getActor()
+        });
+        toast(`Reassigned (overloaded)`, 'success');
+        loadCapacityActive();
+      } catch (e2) { toast(e2.message, 'error'); }
+    } else { toast(e.message, 'error'); }
+  }
+}
+
+async function loadCapWeek() {
+  const date = document.getElementById('cap-date').value || todayISO();
+  // Compute Monday of selected week
+  const d = new Date(date + 'T00:00:00');
+  const day = d.getDay() || 7;
+  if (day !== 1) d.setDate(d.getDate() - (day - 1));
+  const monIso = d.toISOString().slice(0, 10);
+  try {
+    const data = await api('GET', `/api/capacity/week?start=${monIso}`);
+    const out = document.getElementById('sub-week');
+    if (data.grid.length === 0) {
+      out.innerHTML = `<div class="placeholder"><div class="emoji">👥</div><h3>No active designers</h3></div>`; return;
+    }
+    let html = `<table class="weekgrid"><thead><tr><th></th>${data.dates.map(d => `<th>${prettyDate(d)}</th>`).join('')}</tr></thead><tbody>`;
+    for (const row of data.grid) {
+      html += `<tr><td class="nm">${escapeHtml(row.designer_name)}</td>`;
+      for (const c of row.cells) {
+        let cls = 'empty';
+        if (c.minutes_assigned > 0) cls = c.is_overloaded ? 'over' : (c.minutes_assigned >= 480 ? 'full' : 'ok');
+        const txt = c.minutes_assigned > 0 ? fmtMinutes(c.minutes_assigned) + ' / 8h' + (c.is_overloaded ? ' 🔴' : '') : '—';
+        html += `<td class="${cls}">${txt}</td>`;
+      }
+      html += '</tr>';
+    }
+    html += '</tbody></table><p class="muted" style="margin-top:6px; font-size:12px;">Mon–Sat. Sundays not shown (weekly off).</p>';
+    out.innerHTML = html;
+  } catch (e) { toast('Week failed: ' + e.message, 'error'); }
+}
+async function loadCapKanban() {
+  const date = document.getElementById('cap-date').value || todayISO();
+  try {
+    const data = await api('GET', `/api/capacity/today?date=${date}`);
+    const out = document.getElementById('sub-kanban');
+    if (data.designers.length === 0) {
+      out.innerHTML = `<div class="placeholder"><div class="emoji">👥</div><h3>No active designers</h3></div>`; return;
+    }
+    out.innerHTML = `<div class="kanban">${data.designers.map(d => {
+      const cards = (d.assignments || []).map(a => `
+        <div class="card ${a.is_done ? 'done' : ''}">
+          <div><strong>${escapeHtml(a.task_name)}</strong></div>
+          <div style="color:var(--muted); font-size:11px;">${escapeHtml(a.project_name || '—')} · ${fmtMinutes(a.minutes)}${a.is_done ? ' · ✓' : ''}</div>
+        </div>`).join('') ||
+        '<div style="color:var(--muted); font-size:11px;">empty</div>';
+      const aged = (d.aged_carryover || []).map(a => `
+        <div class="card aged">
+          <div>🟡 <strong>${escapeHtml(a.task_name)}</strong></div>
+          <div style="color:var(--muted); font-size:11px;">From ${escapeHtml(a.assigned_date)} · ${fmtMinutes(a.minutes)}</div>
+        </div>`).join('');
+      return `<div class="col ${d.is_overloaded ? 'over' : ''}">
+        <h4>${escapeHtml(d.designer_name)}${d.is_overloaded ? ' 🔴' : ''}</h4>
+        <div class="cap">${fmtMinutes(d.minutes_assigned)} / 8h ${d.is_overloaded ? '(over)' : `· ${fmtMinutes(d.minutes_free)} free`}</div>
+        ${cards}
+        ${aged}
+      </div>`;
+    }).join('')}</div>`;
+  } catch (e) { toast('Kanban failed: ' + e.message, 'error'); }
+}
+
+// =========================== Completed ===========================
+let cmpInited = false;
+async function initCompletedTab() {
+  if (!cmpInited) {
+    document.getElementById('cmp-from').value = lastNDays(30);
+    document.getElementById('cmp-to').value   = todayISO();
+    await populateDesignerSelect('cmp-designer');
+    cmpInited = true;
+  }
+  loadCompleted();
+}
+async function loadCompleted() {
+  const from = document.getElementById('cmp-from').value;
+  const to   = document.getElementById('cmp-to').value;
+  const dId  = document.getElementById('cmp-designer').value;
+  const qs = new URLSearchParams({ from, to });
+  if (dId) qs.set('designer_id', dId);
+  try {
+    const data = await api('GET', '/api/completed?' + qs.toString());
+    const tbody = document.getElementById('cmp-rows');
+    if (data.items.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">No completed tasks in that range.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = data.items.map(t => `<tr>
+      <td>${new Date(t.completed_at).toLocaleString()}</td>
+      <td><span class="source-badge ${t.source}">${t.source.toUpperCase()}</span> ${escapeHtml(t.task_name)}</td>
+      <td>${t.project_name ? `<span class="pill lav">${escapeHtml(t.project_name)}</span>` : ''}${t.tag_name ? ` <span class="${tagPillClass(t.tag_name)}">${escapeHtml(t.tag_name)}</span>` : ''}</td>
+      <td>${escapeHtml(t.designer_name)}</td>
+      <td>${fmtMinutes(t.total_minutes)}</td>
+      <td>${t.on_time ? '<span class="pill green">✓ On time</span>' : '<span class="pill red">⚠ Late</span>'}</td>
+    </tr>`).join('');
+  } catch (e) { toast('Completed failed: ' + e.message, 'error'); }
+}
+document.getElementById('btn-cmp-load').addEventListener('click', loadCompleted);
+
+// =========================== Reports ===========================
+let repInited = false;
+async function initReportsTab() {
+  if (!repInited) {
+    document.getElementById('rep-from').value = firstOfMonth();
+    document.getElementById('rep-to').value   = todayISO();
+    await populateDesignerSelect('rep-designer');
+    repInited = true;
+  }
+  loadReports();
+}
+async function loadReports() {
+  const from = document.getElementById('rep-from').value;
+  const to   = document.getElementById('rep-to').value;
+  const dId  = document.getElementById('rep-designer').value;
+  document.getElementById('rep-range').textContent = `${from} → ${to}`;
+
+  // Daily series for chart
+  const qs = new URLSearchParams({ from, to });
+  if (dId) qs.set('designer_id', dId);
+  try {
+    const daily = await api('GET', '/api/reports/daily?' + qs.toString());
+    renderBarchart(daily.series);
+    document.getElementById('rep-count').textContent = daily.series.length;
+  } catch (e) { toast('Daily report failed: ' + e.message, 'error'); }
+
+  // Summary for leaderboard
+  try {
+    const sum = await api('GET', `/api/reports/summary?from=${from}&to=${to}`);
+    const lb = document.getElementById('rep-leaderboard');
+    if (sum.designers.length === 0) {
+      lb.innerHTML = '<li><span class="muted">No data.</span></li>';
+    } else {
+      lb.innerHTML = sum.designers.map(d => {
+        let cls = 'mid';
+        if (d.efficiency_pct == null) cls = '';
+        else if (d.efficiency_pct >= 80) cls = 'high';
+        else if (d.efficiency_pct < 60)  cls = 'low';
+        return `<li><span>${escapeHtml(d.designer_name)}</span><span class="pct ${cls}">${d.efficiency_pct == null ? '—' : d.efficiency_pct + '%'}</span></li>`;
+      }).join('');
+    }
+    document.getElementById('rep-team-pct').textContent = sum.team.team_efficiency_pct == null ? '—' : sum.team.team_efficiency_pct + '%';
+  } catch (e) { /* silent */ }
+}
+function renderBarchart(series) {
+  const el = document.getElementById('rep-barchart');
+  if (series.length === 0) { el.innerHTML = '<span class="muted" style="margin:auto;">No data in range.</span>'; return; }
+  // If multiple designers, group by date
+  const byDate = {};
+  for (const s of series) {
+    if (!byDate[s.date]) byDate[s.date] = { date: s.date, total: 0, on_time: 0 };
+    byDate[s.date].total   += s.total;
+    byDate[s.date].on_time += s.on_time_done;
+  }
+  const dates = Object.keys(byDate).sort();
+  el.innerHTML = dates.map(d => {
+    const x = byDate[d];
+    const pct = x.total > 0 ? Math.round((x.on_time / x.total) * 100) : 0;
+    const cls = pct >= 80 ? '' : (pct >= 50 ? 'miss' : 'miss');
+    return `<div class="b ${pct === 0 ? 'empty' : cls}" style="height:${Math.max(2, pct)}%" title="${d}: ${pct}% (${x.on_time}/${x.total})">
+      <div class="val">${pct}%</div>
+      <div class="lbl">${d.slice(5)}</div>
+    </div>`;
+  }).join('');
+}
+document.getElementById('btn-rep-load').addEventListener('click', loadReports);
+
+async function populateDesignerSelect(id) {
+  try {
+    const list = await api('GET', '/api/designers');
+    const sel = document.getElementById(id);
+    sel.innerHTML = '<option value="">All designers</option>' +
+      list.filter(d => d.is_active).map(d => `<option value="${d.id}">${escapeHtml(d.name)}</option>`).join('');
+  } catch (e) { /* silent */ }
+}
+
+// =========================== Settings — designers ===========================
+async function loadDesigners() {
+  try {
+    const list = await api('GET', '/api/designers');
+    renderDesigners(list);
+  } catch (e) { toast('Designers failed: ' + e.message, 'error'); }
+}
+function renderDesigners(list) {
+  const tbody = document.getElementById('designer-rows');
+  if (list.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:24px;">No designers yet. Add one below.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(d => {
+    const url = `${API}/d/${d.url_token}`;
+    const fullUrl = location.origin + url;
+    const status = d.is_active ? `<span class="pill green">Active</span>` : `<span class="pill red">Inactive</span>`;
+    return `<tr data-id="${d.id}">
+      <td>${escapeHtml(d.name)}</td>
+      <td><code>${escapeHtml(url)}</code><button class="copy-btn" onclick="copyToClipboard('${fullUrl}', this)">copy</button></td>
+      <td>••••</td>
+      <td>${status}</td>
+      <td style="text-align:right;">
+        <button class="icon-btn" onclick="startEdit(${d.id})">✎ Edit</button>
+        <button class="icon-btn" onclick="rotateToken(${d.id})" title="Rotate URL token">↻</button>
+        <button class="icon-btn danger" onclick="deleteDesigner(${d.id}, '${escapeAttr(d.name)}')">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+document.getElementById('btn-add').addEventListener('click', addDesigner);
+document.getElementById('new-pin').addEventListener('keydown', (e) => { if (e.key === 'Enter') addDesigner(); });
+async function addDesigner() {
+  const name = document.getElementById('new-name').value.trim();
+  const pin  = document.getElementById('new-pin').value.trim();
+  if (!name) return toast('Enter a name', 'error');
+  if (!/^\d{4}$/.test(pin)) return toast('PIN must be 4 digits', 'error');
+  try {
+    await api('POST', '/api/designers', { name, pin });
+    document.getElementById('new-name').value = '';
+    document.getElementById('new-pin').value = '';
+    document.getElementById('new-name').focus();
+    toast('Designer added', 'success');
+    loadDesigners();
+  } catch (e) { toast(e.message, 'error'); }
+}
+async function deleteDesigner(id, name) {
+  if (!confirm(`Delete designer "${name}"?\nHard delete — historical records may block deletion.`)) return;
+  try { await api('DELETE', '/api/designers/' + id); toast('Deleted', 'success'); loadDesigners(); }
+  catch (e) { toast(e.message, 'error'); }
+}
+async function rotateToken(id) {
+  if (!confirm('Generate a new URL? Old URL stops working immediately.')) return;
+  try { await api('POST', '/api/designers/' + id + '/rotate-token'); toast('URL rotated', 'success'); loadDesigners(); }
+  catch (e) { toast(e.message, 'error'); }
+}
+function startEdit(id) {
+  const row = document.querySelector(`#designer-rows tr[data-id="${id}"]`);
+  if (!row) return;
+  const name = row.children[0].textContent;
+  row.classList.add('editing');
+  row.innerHTML = `
+    <td><input class="edit-name" value="${escapeAttr(name)}" /></td>
+    <td colspan="2"><input class="edit-pin" placeholder="New PIN (blank = keep)" maxlength="4" inputmode="numeric" /></td>
+    <td><label style="font-size:12px;"><input class="edit-active" type="checkbox" checked> Active</label></td>
+    <td style="text-align:right;"><button class="btn" onclick="saveEdit(${id})">Save</button><button class="icon-btn" onclick="loadDesigners()">Cancel</button></td>
+  `;
+}
+async function saveEdit(id) {
+  const row = document.querySelector(`#designer-rows tr[data-id="${id}"]`);
+  if (!row) return;
+  const body = {};
+  const newName = row.querySelector('.edit-name').value.trim();
+  const newPin  = row.querySelector('.edit-pin').value.trim();
+  const newAct  = row.querySelector('.edit-active').checked;
+  if (newName) body.name = newName;
+  if (newPin)  { if (!/^\d{4}$/.test(newPin)) return toast('PIN must be 4 digits', 'error'); body.pin = newPin; }
+  body.is_active = newAct;
+  try { await api('PATCH', '/api/designers/' + id, body); toast('Saved', 'success'); loadDesigners(); }
+  catch (e) { toast(e.message, 'error'); }
+}
+
+// =========================== Settings — tags ===========================
+async function loadTags() {
+  try {
+    const list = await api('GET', '/api/tags');
+    document.getElementById('tags-list').innerHTML = list.length
+      ? list.map(t => `<span class="${tagPillClass(t.name)}" style="font-size:13px; padding:4px 12px;">${escapeHtml(t.name)}</span>`).join('')
+      : '<span class="muted" style="font-size:12px;">No tags yet.</span>';
+  } catch (e) { /* silent */ }
+}
+
+// =========================== Settings — Zoho ===========================
+async function loadZohoStatus() {
+  try {
+    const s = await api('GET', '/api/zoho/status');
+    const banner = document.getElementById('zoho-status-banner');
+    if (s.config.connected) {
+      banner.innerHTML = `<div class="banner ok"><span>✓ Zoho connected. Last sync: ${s.config.last_sync_at ? new Date(s.config.last_sync_at).toLocaleString() : 'never'}.</span><span></span></div>`;
+    } else {
+      banner.innerHTML = `<div class="banner warn"><span>⚠️ Not yet connected. Fill in Client ID, Client Secret, Refresh Token, and Portal ID below, then save.</span><span></span></div>`;
+    }
+    // Show portal id + tag values (don't reveal secret values)
+    document.getElementById('z-portal-id').value  = s.config.portal_id || '';
+    document.getElementById('z-tag-id').value     = s.config.designing_tag_id || '';
+    document.getElementById('z-tag-name').value   = s.config.designing_tag_name || '';
+    document.getElementById('z-client-id').placeholder     = s.config.client_id_set     ? '(set — leave blank to keep)' : '(unset)';
+    document.getElementById('z-client-secret').placeholder = s.config.client_secret_set ? '(set — leave blank to keep)' : '(unset)';
+    document.getElementById('z-refresh-token').placeholder = s.config.refresh_token_set ? '(set — leave blank to keep)' : '(unset)';
+
+    const recent = document.getElementById('zoho-recent');
+    if (s.recent_syncs && s.recent_syncs.length > 0) {
+      recent.innerHTML = `<div style="font-size:12px; color:var(--muted); margin-bottom:6px;">RECENT SYNCS</div>
+        <table class="std"><thead><tr><th>Started</th><th>Trigger</th><th>Status</th><th>New / Seen / Skipped</th><th>Error</th></tr></thead>
+        <tbody>${s.recent_syncs.map(r => `<tr>
+          <td>${new Date(r.started_at).toLocaleString()}</td>
+          <td>${escapeHtml(r.trigger_type)}</td>
+          <td>${r.ok === true ? '<span class="pill green">OK</span>' : (r.ok === false ? '<span class="pill red">FAIL</span>' : '…')}</td>
+          <td>${r.tasks_new ?? '—'} / ${r.tasks_seen ?? '—'} / ${r.tasks_skipped ?? '—'}</td>
+          <td style="color:var(--red); font-size:11px;">${escapeHtml(r.error_message || '')}</td>
+        </tr>`).join('')}</tbody></table>`;
+    } else { recent.innerHTML = ''; }
+  } catch (e) { toast('Zoho status failed: ' + e.message, 'error'); }
+}
+document.getElementById('btn-zoho-save').addEventListener('click', async () => {
+  const body = {};
+  ['client_id','client_secret','refresh_token','portal_id','tag_id','tag_name'].forEach(k => {
+    const dom = { client_id: 'z-client-id', client_secret: 'z-client-secret', refresh_token: 'z-refresh-token',
+                  portal_id: 'z-portal-id', tag_id: 'z-tag-id', tag_name: 'z-tag-name' }[k];
+    const v = document.getElementById(dom).value.trim();
+    if (v) body['zoho_' + (k === 'tag_id' ? 'designing_tag_id' : k === 'tag_name' ? 'designing_tag_name' : k)] = v;
+  });
+  try {
+    await api('POST', '/api/zoho/settings', body);
+    toast('Zoho settings saved', 'success');
+    ['z-client-id','z-client-secret','z-refresh-token'].forEach(id => document.getElementById(id).value = '');
+    loadZohoStatus();
+  } catch (e) { toast(e.message, 'error'); }
+});
+document.getElementById('btn-zoho-test').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-zoho-test'); btn.disabled = true; btn.textContent = '⟳ Testing…';
+  try {
+    const r = await api('POST', '/api/zoho/sync', { actor: getActor() });
+    toast(`Sync OK · ${r.tasks_new} new of ${r.tasks_seen} seen`, 'success');
+    loadZohoStatus();
+  } catch (e) { toast('Sync failed: ' + e.message, 'error'); }
+  finally { btn.disabled = false; btn.textContent = 'Test sync now'; }
+});
+
+// =========================== Health ===========================
 async function checkHealth() {
-  const el = document.getElementById('health');
-  const txt = document.getElementById('health-text');
+  const el = document.getElementById('health'); const txt = document.getElementById('health-text');
   try {
     const data = await api('GET', '/api/health');
     el.className = 'health ok';
     txt.textContent = 'Backend OK · ' + new Date(data.db_time).toLocaleTimeString();
   } catch (e) {
-    el.className = 'health err';
-    txt.textContent = 'Backend error';
+    el.className = 'health err'; txt.textContent = 'Backend error';
   }
 }
 
-// =========================== boot ===========================
+// =========================== Boot ===========================
 loadActiveTasks();
 loadAvailability();
 loadTagsForAdhoc();
+loadDashboard();   // pre-load tile counts so badges populate
 checkHealth();
 setInterval(checkHealth, 30000);
 </script>

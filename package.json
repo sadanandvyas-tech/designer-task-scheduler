@@ -1,6 +1,6 @@
 {
   "name": "designer-task-scheduler",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Daily task assignment + capacity tracking for the design team. Sub-app of operation.yotser.in/designer-tasks/.",
   "main": "server.js",

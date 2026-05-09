@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+<title>My Day — Designer Task Scheduler</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --ink: #1f2937;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --green: #10b981;
+    --green-bg: #d1fae5;
+    --yellow-bg: #fef3c7;
+    --yellow: #f59e0b;
+    --red: #ef4444;
+    --red-bg: #fee2e2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--ink);
+    min-height: 100vh;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 0; }
+  .head {
+    background: linear-gradient(120deg, #6d28d9, #a855f7);
+    color: #fff; padding: 24px 20px 20px;
+  }
+  .head h1 { margin: 0 0 6px; font-size: 22px; font-weight: 700; }
+  .head .date { opacity: 0.85; font-size: 13px; }
+  .badges { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .badge {
+    background: rgba(255,255,255,0.22); color: #fff;
+    padding: 6px 12px; border-radius: 14px; font-size: 12px; font-weight: 600;
+  }
+  .body { padding: 0 16px 24px; }
+
+  /* PIN gate */
+  .gate {
+    background: #fff; border: 1px solid var(--line); border-radius: 12px;
+    padding: 32px 24px; margin: 32px auto; text-align: center;
+  }
+  .gate h2 { margin: 0 0 8px; font-size: 18px; }
+  .gate p { color: var(--muted); margin: 0 0 20px; font-size: 14px; }
+  .gate input {
+    width: 200px; padding: 14px 18px; font: 700 24px ui-monospace, monospace;
+    letter-spacing: 0.5em; text-align: center;
+    border: 2px solid var(--line); border-radius: 10px;
+  }
+  .gate input:focus { outline: 0; border-color: #a855f7; }
+  .gate .err { color: var(--red); margin: 12px 0 0; font-size: 13px; min-height: 18px; }
+  .gate button {
+    margin-top: 16px; padding: 12px 32px; font: 600 15px inherit;
+    background: #6d28d9; color: #fff; border: 0; border-radius: 8px; cursor: pointer;
+  }
+  .gate button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  /* Task cards */
+  .day-section { margin-top: 20px; }
+  .day-section h3 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted); margin: 0 0 8px; font-weight: 600;
+  }
+  .task {
+    background: #fff; border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px 16px; margin-bottom: 8px;
+  }
+  .task.done { opacity: 0.5; background: #fafbfc; }
+  .task.aged { background: var(--yellow-bg); border-color: var(--yellow); }
+  .task .title { font-weight: 600; font-size: 15px; line-height: 1.3; margin-bottom: 4px; }
+  .task .meta { color: var(--muted); font-size: 12px; }
+  .task .pill {
+    display: inline-block; padding: 1px 8px; border-radius: 10px;
+    font-size: 10px; font-weight: 600; margin-right: 6px;
+  }
+  .task .pill.done { background: var(--green-bg); color: #065f46; }
+  .task .pill.aged { background: #fde68a; color: #92400e; }
+  .task .pill.tag  { background: #e0e7ff; color: #3730a3; }
+  .empty {
+    text-align: center; padding: 48px 16px; color: var(--muted);
+    font-size: 14px;
+  }
+  .empty .emoji { font-size: 36px; display: block; margin-bottom: 8px; }
+  .footer-note {
+    text-align: center; padding: 24px 16px 32px; color: var(--muted); font-size: 11px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <h1 id="hdr-title">My Day</h1>
+    <div class="date" id="hdr-date">Loading…</div>
+    <div class="badges" id="hdr-badges" style="display: none;"></div>
+  </div>
+
+  <div class="body" id="body">
+    <div class="empty"><span class="emoji">⏳</span>Loading…</div>
+  </div>
+
+  <div class="footer-note">
+    Auto-refreshes every 5 minutes. <br>
+    Read-only — your assigner manages the queue.
+  </div>
+
+</div>
+
+<script>
+const TOKEN = location.pathname.split('/').filter(Boolean).pop();
+const APP   = '/designer-tasks';
+
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  const res = await fetch(APP + path, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(data.error || `${res.status} ${res.statusText}`);
+    err.status = res.status;
+    throw err;
+  }
+  return data;
+}
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+function fmtMinutes(m) {
+  if (!m) return '0m';
+  const h = Math.floor(m / 60), mm = m % 60;
+  if (h && mm) return `${h}h ${mm}m`;
+  if (h) return `${h}h`;
+  return `${mm}m`;
+}
+function prettyDate(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+}
+
+function renderGate(errorMsg) {
+  const body = document.getElementById('body');
+  document.getElementById('hdr-title').textContent = 'My Day';
+  document.getElementById('hdr-date').textContent  = 'Enter your 4-digit PIN to view today\'s tasks';
+  document.getElementById('hdr-badges').style.display = 'none';
+  body.innerHTML = `
+    <div class="gate">
+      <h2>🔒 PIN required</h2>
+      <p>Ask your assigner if you don't have one.</p>
+      <input id="pin-input" type="tel" inputmode="numeric" maxlength="4" pattern="\\d{4}" placeholder="••••" autocomplete="off" />
+      <div class="err" id="pin-err">${errorMsg ? escapeHtml(errorMsg) : ''}</div>
+      <button id="pin-btn">Unlock</button>
+    </div>
+  `;
+  const inp = document.getElementById('pin-input');
+  const btn = document.getElementById('pin-btn');
+  inp.focus();
+  inp.addEventListener('input', () => {
+    inp.value = inp.value.replace(/\D/g, '').slice(0, 4);
+  });
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') verifyPin(); });
+  btn.addEventListener('click', verifyPin);
+}
+
+async function verifyPin() {
+  const inp = document.getElementById('pin-input');
+  const btn = document.getElementById('pin-btn');
+  const err = document.getElementById('pin-err');
+  const pin = inp.value.trim();
+  if (!/^\d{4}$/.test(pin)) { err.textContent = 'Enter exactly 4 digits.'; return; }
+  btn.disabled = true; err.textContent = '';
+  try {
+    await api('POST', `/d/${TOKEN}/verify-pin`, { pin });
+    loadToday();
+  } catch (e) {
+    err.textContent = e.message;
+    btn.disabled = false;
+    inp.focus(); inp.select();
+  }
+}
+
+async function loadToday() {
+  try {
+    const data = await api('GET', `/api/d/${TOKEN}/today`);
+    renderToday(data);
+  } catch (e) {
+    if (e.status === 401) { renderGate(); return; }
+    if (e.status === 404) {
+      document.getElementById('body').innerHTML = `
+        <div class="empty"><span class="emoji">⚠️</span>This URL is no longer valid. Ask your assigner for a new link.</div>`;
+      return;
+    }
+    document.getElementById('body').innerHTML = `
+      <div class="empty"><span class="emoji">⚠️</span>${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderToday(data) {
+  document.getElementById('hdr-title').textContent = data.designer.name;
+  document.getElementById('hdr-date').textContent  = prettyDate(data.date);
+
+  const badges = document.getElementById('hdr-badges');
+  badges.style.display = 'flex';
+  const t = data.efficiency.today_pct;
+  const m = data.efficiency.month_pct;
+  badges.innerHTML = `
+    <span class="badge">Today: ${t == null ? '—' : t + '%'}</span>
+    <span class="badge">Month: ${m == null ? '—' : m + '%'}</span>
+  `;
+
+  const todayTasks = data.tasks.filter(x => !x.is_aged);
+  const agedTasks  = data.tasks.filter(x =>  x.is_aged);
+
+  const body = document.getElementById('body');
+  let html = '';
+
+  if (data.tasks.length === 0) {
+    html = `<div class="empty"><span class="emoji">🎯</span>No tasks for today. Enjoy the breather.</div>`;
+  } else {
+    if (agedTasks.length > 0) {
+      html += `<div class="day-section">
+        <h3>🟡 Carrying over from earlier (${agedTasks.length})</h3>
+        ${agedTasks.map(taskCard).join('')}
+      </div>`;
+    }
+    if (todayTasks.length > 0) {
+      html += `<div class="day-section">
+        <h3>Today (${todayTasks.length})</h3>
+        ${todayTasks.map(taskCard).join('')}
+      </div>`;
+    }
+  }
+  body.innerHTML = html;
+}
+
+function taskCard(t) {
+  const cls = ['task'];
+  if (t.is_done) cls.push('done');
+  if (t.is_aged) cls.push('aged');
+  const pills = [];
+  if (t.is_done) pills.push('<span class="pill done">✓ DONE</span>');
+  if (t.is_aged) pills.push(`<span class="pill aged">FROM ${escapeHtml(t.assigned_date)}</span>`);
+  if (t.tag_name) pills.push(`<span class="pill tag">${escapeHtml(t.tag_name)}</span>`);
+  return `<div class="${cls.join(' ')}">
+    <div class="title">${pills.join('')}${escapeHtml(t.task_name)}</div>
+    <div class="meta">${escapeHtml(t.project_name || '—')} · ${fmtMinutes(t.minutes)}</div>
+  </div>`;
+}
+
+// boot
+loadToday();
+setInterval(loadToday, 5 * 60 * 1000);
+</script>
+</body>
+</html>

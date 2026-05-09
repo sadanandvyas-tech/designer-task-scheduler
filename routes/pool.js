@@ -1,0 +1,67 @@
+// Pool tab — list pool tasks + move-to-active (single + bulk).
+// Mounted by server.js: require('./routes/pool')(router, db);
+
+module.exports = function (router, db) {
+
+  // List pool tasks (Zoho-imported or sent-back). Most recently imported first.
+  router.get('/api/pool', async (_req, res) => {
+    try {
+      const { rows } = await db.query(`
+        SELECT t.id, t.source, t.task_name, t.project_name,
+               t.zoho_project_id, t.zoho_task_id,
+               t.zoho_status_at_import, t.zoho_priority_at_import,
+               t.tag_id, tg.name AS tag_name, tg.color_hex AS tag_color,
+               t.imported_at, t.created_by
+        FROM tasks t
+        LEFT JOIN tags tg ON tg.id = t.tag_id
+        WHERE t.state = 'pool'
+        ORDER BY t.imported_at DESC
+      `);
+      res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+  });
+
+  // Single move pool -> active
+  router.post('/api/tasks/:id/move-to-active', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const actor = (req.body?.actor || 'unknown').trim();
+      const { rows } = await db.query(
+        `UPDATE tasks SET state = 'active'
+         WHERE id = $1 AND state = 'pool'
+         RETURNING id, task_name, state`, [id]
+      );
+      if (rows.length === 0) {
+        return res.status(409).json({ error: 'task is not in pool state' });
+      }
+      await db.query(
+        `INSERT INTO audit_log (task_id, actor, action) VALUES ($1, $2, 'moved_to_active')`,
+        [id, actor]
+      );
+      res.json(rows[0]);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+  });
+
+  // Bulk move pool -> active
+  router.post('/api/tasks/bulk-move-to-active', async (req, res) => {
+    try {
+      const ids = (req.body?.ids || []).map(x => parseInt(x)).filter(Boolean);
+      if (ids.length === 0) return res.status(400).json({ error: 'ids array required' });
+      const actor = (req.body?.actor || 'unknown').trim();
+
+      const { rows } = await db.query(
+        `UPDATE tasks SET state = 'active'
+         WHERE id = ANY($1::int[]) AND state = 'pool'
+         RETURNING id, task_name`, [ids]
+      );
+      // Audit each
+      for (const r of rows) {
+        await db.query(
+          `INSERT INTO audit_log (task_id, actor, action) VALUES ($1, $2, 'moved_to_active')`,
+          [r.id, actor]
+        );
+      }
+      res.json({ ok: true, moved: rows.length, ids: rows.map(r => r.id) });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+  });
+};
