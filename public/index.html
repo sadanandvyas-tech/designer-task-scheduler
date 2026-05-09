@@ -247,10 +247,24 @@
   }
   .task-card.done { background: #ecfdf5; opacity: 0.75; }
   .task-card.aged { background: var(--yellow-bg); border-color: var(--yellow); }
+  .task-card.reassigning { background: #eff6ff; border-color: var(--brand); }
   .task-card .info { flex: 1; min-width: 240px; }
   .task-card .info .title { font-weight: 600; font-size: 13px; }
   .task-card .info .meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
   .task-card .actions { display: flex; gap: 4px; flex-wrap: wrap; }
+  /* Inline reassign form (Option A — no popup) */
+  .reassign-form {
+    flex-basis: 100%; margin-top: 8px; padding-top: 8px;
+    border-top: 1px dashed var(--brand);
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  }
+  .reassign-form .label { font-size: 12px; color: var(--brand); font-weight: 600; }
+  .reassign-form select, .reassign-form input {
+    padding: 6px 10px; border: 1px solid var(--line); border-radius: 5px;
+    font: inherit; font-size: 12px; background: #fff;
+  }
+  .reassign-form select { min-width: 220px; }
+  .reassign-form input { flex: 1; min-width: 200px; }
 
   /* Week grid */
   .weekgrid { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
@@ -1053,11 +1067,37 @@ function taskCardHTML(a, agedFromCarry) {
   const cls = ['task-card'];
   if (a.is_done) cls.push('done');
   if (agedFromCarry) cls.push('aged');
+  const isReassigning = reassigningTaskId === a.task_id;
+  if (isReassigning) cls.push('reassigning');
   const pills = [];
   if (a.is_done) pills.push('<span class="pill green">✓ Done</span>');
   if (agedFromCarry) pills.push(`<span class="pill yellow">From ${escapeHtml(a.assigned_date)}</span>`);
   if (a.tag_name) pills.push(`<span class="${tagPillClass(a.tag_name)}">${escapeHtml(a.tag_name)}</span>`);
   const sourceBadge = `<span class="source-badge ${a.source}">${a.source.toUpperCase()}</span>`;
+
+  let inlineForm = '';
+  if (isReassigning) {
+    const opts = availability.designers
+      .filter(d => d.id !== a.designer_id)
+      .map(d => {
+        const tag = d.is_overloaded
+          ? `(OVERLOADED ${fmtMinutes(d.minutes_assigned - availability.day_minutes)} over)`
+          : `(${fmtMinutes(d.minutes_free)} free)`;
+        return `<option value="${d.id}">${escapeHtml(d.name)} ${tag}</option>`;
+      }).join('');
+    inlineForm = `
+      <div class="reassign-form">
+        <span class="label">↳ Reassign to:</span>
+        <select id="reassign-designer-${a.task_id}">
+          <option value="">— pick designer —</option>
+          ${opts || '<option disabled>No other active designers</option>'}
+        </select>
+        <input id="reassign-reason-${a.task_id}" type="text" placeholder="Reason (required, e.g. sick leave / scope change)" maxlength="200" />
+        <button class="btn" onclick="submitReassign(${a.task_id})">Save</button>
+        <button class="icon-btn" onclick="cancelReassign()">Cancel</button>
+      </div>`;
+  }
+
   return `<div class="${cls.join(' ')}">
     <div class="info">
       <div class="title">${sourceBadge}${escapeHtml(a.task_name)}</div>
@@ -1065,10 +1105,11 @@ function taskCardHTML(a, agedFromCarry) {
     </div>
     <div class="actions">
       <button class="btn ${a.is_done ? 'ghost' : 'success'}" onclick="toggleDone(${a.id})">${a.is_done ? 'Undo' : '✓ Done'}</button>
-      <button class="icon-btn" onclick="reassignTask(${a.task_id}, '${escapeAttr(a.task_name)}')">↻ Reassign</button>
+      <button class="icon-btn ${isReassigning ? 'danger' : ''}" onclick="${isReassigning ? 'cancelReassign()' : `reassignTask(${a.task_id})`}">${isReassigning ? '✕ Cancel' : '↻ Reassign'}</button>
       <button class="icon-btn" onclick="sendBack(${a.task_id})">↩ Pool</button>
       <button class="icon-btn danger" onclick="cancelTask(${a.task_id}, '${escapeAttr(a.task_name)}')">✕</button>
     </div>
+    ${inlineForm}
   </div>`;
 }
 async function toggleDone(assignmentId) {
@@ -1078,33 +1119,54 @@ async function toggleDone(assignmentId) {
     loadCapacityActive();
   } catch (e) { toast(e.message, 'error'); }
 }
-async function reassignTask(taskId, taskName) {
+// ---- Inline reassign state machine ----
+// Click "Reassign" → set reassigningTaskId, re-render the Capacity board.
+// The task card's render function detects this and appends an inline form.
+let reassigningTaskId = null;
+
+async function reassignTask(taskId) {
+  // Make sure availability is fresh so dropdown shows accurate free hours
   if (availability.designers.length === 0) await loadAvailability();
-  const list = availability.designers.map((d,i) => `${i+1}. ${d.name} (${fmtMinutes(d.minutes_free)} free)`).join('\n');
-  const idx = prompt(`Reassign "${taskName}".\n\nPick designer by number:\n${list}`);
-  if (idx === null) return;
-  const choice = availability.designers[parseInt(idx) - 1];
-  if (!choice) return toast('Invalid choice', 'error');
-  const reason = prompt('Reason for reassignment (required):');
-  if (!reason || !reason.trim()) return toast('Reason required', 'error');
+  reassigningTaskId = taskId;
+  loadCapacityActive();
+  // Focus the dropdown after re-render
+  setTimeout(() => {
+    const sel = document.getElementById(`reassign-designer-${taskId}`);
+    if (sel) sel.focus();
+  }, 50);
+}
+
+function cancelReassign() {
+  reassigningTaskId = null;
+  loadCapacityActive();
+}
+
+async function submitReassign(taskId, force = false) {
+  const sel = document.getElementById(`reassign-designer-${taskId}`);
+  const reasonInput = document.getElementById(`reassign-reason-${taskId}`);
+  if (!sel || !reasonInput) return;
+
+  const newDesignerId = parseInt(sel.value || '0');
+  const reason = (reasonInput.value || '').trim();
+  if (!newDesignerId) return toast('Pick a designer', 'error');
+  if (!reason) return toast('Reason is required', 'error');
+
   try {
-    await api('POST', `/api/tasks/${taskId}/reassign`, {
-      new_designer_id: choice.id, reason: reason.trim(), actor: getActor()
+    const r = await api('POST', `/api/tasks/${taskId}/reassign`, {
+      new_designer_id: newDesignerId, reason, force, actor: getActor()
     });
-    toast(`Reassigned to ${choice.name}`, 'success');
-    loadCapacityActive();
+    toast(`Reassigned to ${r.new_designer_name}` + (force ? ' (OVERLOADED)' : ''), 'success');
+    reassigningTaskId = null;
+    await Promise.all([loadCapacityActive(), loadAvailability()]);
   } catch (e) {
     if (e.body && e.body.error === 'overload') {
-      const det = e.body.overloads.map(o => `${o.date}: ${fmtMinutes(o.over_by)} over`).join('\n');
-      if (!confirm(`Will overload ${e.body.designer_name}:\n${det}\n\nForce?`)) return;
-      try {
-        await api('POST', `/api/tasks/${taskId}/reassign`, {
-          new_designer_id: choice.id, reason: reason.trim(), force: true, actor: getActor()
-        });
-        toast(`Reassigned (overloaded)`, 'success');
-        loadCapacityActive();
-      } catch (e2) { toast(e2.message, 'error'); }
-    } else { toast(e.message, 'error'); }
+      const det = e.body.overloads.map(o => `${o.date}: ${fmtMinutes(o.over_by)} over (would be ${fmtMinutes(o.total_minutes)})`).join('\n');
+      if (confirm(`This will OVERLOAD ${e.body.designer_name}:\n\n${det}\n\nForce reassign anyway?`)) {
+        submitReassign(taskId, true);
+      }
+    } else {
+      toast(e.message, 'error');
+    }
   }
 }
 
