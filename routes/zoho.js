@@ -18,7 +18,11 @@
 
 let inflightSync = false;     // simple lock so 5-min poll + manual click don't collide
 let inflightSyncStartedAt = null;
-const MAX_SYNC_DURATION_MS = 3 * 60 * 1000;  // 3 minutes — stuck-lock recovery
+const MAX_SYNC_DURATION_MS = 10 * 60 * 1000; // 10 min — increased from 3 min
+                                             // because rate-limit-friendly delay
+                                             // between per-project calls makes
+                                             // syncs longer (1.5s × N projects).
+const PER_PROJECT_DELAY_MS = 1500;           // Stay well under Zoho's 100-per-2-min URL throttle
 let cachedToken  = null;      // { access_token, expires_at_ms }
 
 async function getSetting(db, key) {
@@ -105,9 +109,15 @@ async function fetchDesigningTasks(db) {
   }
   console.log(`[zoho-sync] fetched ${projects.length} projects total`);
 
-  // 2. Tasks per project (paginated)
+  // 2. Tasks per project (paginated). We sleep PER_PROJECT_DELAY_MS between
+  // projects to stay below Zoho's 100-requests-per-2-minutes URL throttle.
+  // First call has no delay so quick syncs stay quick.
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
   const collected = [];
+  let projectIdx = 0;
   for (const proj of projects) {
+    if (projectIdx > 0) await sleep(PER_PROJECT_DELAY_MS);
+    projectIdx++;
     const pid = proj.id_string || proj.id;
     let from = 1;
     while (true) {
@@ -274,9 +284,27 @@ module.exports = function (router, db) {
   });
 
   // ---- manual sync trigger ----
+  // Guard: refuse if a sync ran in the last 3 minutes (Zoho's per-URL throttle
+  // is 100/2min; back-to-back manual clicks could trip it).
   router.post('/api/zoho/sync', async (req, res) => {
     try {
       const actor = (req.body?.actor || 'manual').trim();
+
+      // Recent-sync rate guard
+      const { rows: recent } = await db.query(
+        `SELECT started_at FROM sync_log WHERE ok IS NOT FALSE
+         ORDER BY started_at DESC LIMIT 1`
+      );
+      if (recent[0]) {
+        const ageSec = (Date.now() - new Date(recent[0].started_at).getTime()) / 1000;
+        if (ageSec < 180) {
+          return res.status(429).json({
+            ok: false,
+            error: `Please wait ${Math.ceil(180 - ageSec)}s before syncing again (Zoho rate-limit guard).`
+          });
+        }
+      }
+
       const result = await runSync(db, actor);
       if (!result.ok) return res.status(502).json(result);
       res.json(result);
@@ -369,10 +397,14 @@ module.exports = function (router, db) {
   });
 };
 
-// Background scheduler — kicks off every 5 minutes if creds are configured.
+// Background scheduler — kicks off every HOUR if creds are configured.
+// Why hourly: assigners plan in 8h windows; intra-hour freshness is unnecessary,
+// and the manual "Sync now" button is always available for on-demand pulls.
+// Hourly also keeps total daily calls well under Zoho's daily org limit
+// (~1,248 calls/day vs the 5,000 daily ceiling).
 // server.js calls module.scheduleBackgroundSync(db) once at boot.
 module.exports.scheduleBackgroundSync = function (db) {
-  const FIVE_MIN_MS = 5 * 60 * 1000;
+  const ONE_HOUR_MS = 60 * 60 * 1000;
   const tick = async () => {
     try {
       const ready = await getSetting(db, 'zoho_client_id')
@@ -384,7 +416,8 @@ module.exports.scheduleBackgroundSync = function (db) {
       console.error('[designer-task-scheduler] zoho cron tick failed:', e.message);
     }
   };
-  // Initial tick after 60s (let server fully boot), then every 5 min.
-  setTimeout(tick, 60_000);
-  setInterval(tick, FIVE_MIN_MS);
+  // Initial tick 5 min after boot (let server settle + give rate limits a chance
+  // to clear if a previous instance was throttled), then every hour.
+  setTimeout(tick, 5 * 60 * 1000);
+  setInterval(tick, ONE_HOUR_MS);
 };
