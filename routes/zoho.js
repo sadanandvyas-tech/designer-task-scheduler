@@ -115,8 +115,18 @@ async function fetchDesigningTasks(db) {
     }
   }
 
-  // 3. Filter by tag
+  // 3. Filter: must have the Designing tag AND not be in a closed status.
+  // Zoho's status object has a `type` field set to "open" or "closed" — we use
+  // that as primary signal, with name-based fallback for safety.
+  const closedNames = ['closed', 'completed', 'done', 'cancelled'];
   return collected.filter(t => {
+    // Skip closed tasks
+    const statusType = (t.status?.type || '').toLowerCase();
+    const statusName = (t.status?.name || '').toLowerCase();
+    if (statusType === 'closed') return false;
+    if (statusName && closedNames.includes(statusName)) return false;
+
+    // Match the Designing tag
     const tags = t.tags || (t.details && t.details.tags) || [];
     if (tagId) return tags.some(tg => String(tg.id) === String(tagId) || String(tg.id_string) === String(tagId));
     return tags.some(tg => (tg.name || tg.tag_name || '').toLowerCase() === tagName.toLowerCase());
@@ -254,6 +264,25 @@ module.exports = function (router, db) {
         `SELECT * FROM sync_log ORDER BY started_at DESC LIMIT 1`
       );
       res.json(rows[0] || null);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+  });
+
+  // ---- clear all Zoho-sourced tasks in pool state (for re-import) ----
+  // Only deletes from pool — Zoho tasks that were already moved to active /
+  // assigned / done are preserved. Ad-hoc tasks are never touched.
+  router.post('/api/zoho/clear-pool', async (req, res) => {
+    try {
+      const actor = (req.body?.actor || 'manual').trim();
+      const { rowCount } = await db.query(
+        `DELETE FROM tasks WHERE source = 'zoho' AND state = 'pool'`
+      );
+      // Audit (no task_id since the rows are gone)
+      await db.query(
+        `INSERT INTO audit_log (actor, action, after_json)
+         VALUES ($1, 'cleared_zoho_pool', $2)`,
+        [actor, JSON.stringify({ deleted: rowCount })]
+      );
+      res.json({ ok: true, deleted: rowCount });
     } catch (err) { res.status(500).json({ error: err.message }); }
   });
 };

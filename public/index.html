@@ -576,9 +576,13 @@
         <label class="muted">Designing Tag ID <span style="font-size:11px;">(optional)</span></label><input type="text" id="z-tag-id" placeholder="numeric ID" />
         <label class="muted">Designing Tag Name <span style="font-size:11px;">(used if no ID)</span></label><input type="text" id="z-tag-name" placeholder="Designing" />
       </div>
-      <div style="margin-top:14px; display:flex; gap:8px;">
+      <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn" id="btn-zoho-save">Save settings</button>
         <button class="btn ghost" id="btn-zoho-test">Test sync now</button>
+        <button class="btn danger" id="btn-zoho-clear">Clear Zoho pool</button>
+      </div>
+      <div style="margin-top:8px; font-size:11px; color:var(--muted);">
+        "Clear Zoho pool" deletes all Zoho-imported tasks currently sitting in Pool. Tasks already moved to Active/Assigned/Done are NOT touched. Useful when you want to re-import after changing filters.
       </div>
       <div id="zoho-recent" style="margin-top: 18px;"></div>
     </div>
@@ -1421,6 +1425,16 @@ document.getElementById('btn-zoho-test').addEventListener('click', async () => {
     loadZohoStatus();
   } catch (e) { toast('Sync failed: ' + e.message, 'error'); }
   finally { btn.disabled = false; btn.textContent = 'Test sync now'; }
+});
+document.getElementById('btn-zoho-clear').addEventListener('click', async () => {
+  if (!confirm('Delete ALL Zoho-imported tasks currently in Pool?\n\nTasks already moved to Active/Assigned/Done will NOT be deleted. This is meant for re-importing after changing filters.\n\nProceed?')) return;
+  const btn = document.getElementById('btn-zoho-clear'); btn.disabled = true; btn.textContent = '⟳ Clearing…';
+  try {
+    const r = await api('POST', '/api/zoho/clear-pool', { actor: getActor() });
+    toast(`Cleared ${r.deleted} Zoho task(s) from Pool`, 'success');
+    loadZohoStatus();
+  } catch (e) { toast('Clear failed: ' + e.message, 'error'); }
+  finally { btn.disabled = false; btn.textContent = 'Clear Zoho pool'; }
 });
 
 // =========================== Health ===========================
