@@ -1,5 +1,7 @@
 # Build Journal — *Palette* (Designer Task Scheduler)
 
+# V1.1 This journal accomnies #
+
 A chronological retrospective of how we went from "we have a problem" to a fully working production app, with every error we hit along the way and how we recovered.
 
 ---
