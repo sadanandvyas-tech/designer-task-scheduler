@@ -420,12 +420,13 @@
           <th>Task ID</th>
           <th>Task name</th>
           <th>Project</th>
+          <th>Zoho owner</th>
           <th>Priority</th>
           <th>Source</th>
           <th></th>
         </tr>
       </thead>
-      <tbody id="pool-rows"><tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Loading…</td></tr></tbody>
+      <tbody id="pool-rows"><tr><td colspan="8" style="text-align:center; color:var(--muted); padding:24px;">Loading…</td></tr></tbody>
     </table>
 
     <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
@@ -551,18 +552,19 @@
 
     <div class="section">
       <h3>Designers</h3>
-      <div class="sub">Each gets a personal read-only URL with a 4-digit PIN.</div>
+      <div class="sub">Each gets a personal read-only URL with a 4-digit PIN. Pair to a Zoho user so tasks owned by them skip the Pool and pre-fill the designer dropdown in Active.</div>
       <table class="std" id="designer-table">
         <thead>
           <tr>
             <th>Name</th>
             <th>Public URL</th>
             <th>PIN</th>
+            <th>Zoho user</th>
             <th>Status</th>
             <th style="width: 200px;"></th>
           </tr>
         </thead>
-        <tbody id="designer-rows"><tr><td colspan="5" style="text-align:center; color:var(--muted); padding:20px;">Loading…</td></tr></tbody>
+        <tbody id="designer-rows"><tr><td colspan="6" style="text-align:center; color:var(--muted); padding:20px;">Loading…</td></tr></tbody>
       </table>
       <div class="add-row">
         <strong>+ Add designer</strong>
@@ -570,6 +572,12 @@
         <input class="pin"  id="new-pin"  type="text" placeholder="4-digit PIN" maxlength="4" inputmode="numeric" />
         <button class="btn" id="btn-add">Add</button>
       </div>
+    </div>
+
+    <div class="section">
+      <h3>Zoho users seen in tasks</h3>
+      <div class="sub">Owners of Designing-tagged tasks pulled from Zoho. Map each to a designer so future imports skip the Pool. Unmapped owners are listed first.</div>
+      <div id="zoho-users-wrap"><span class="muted" style="font-size:12px;">Loading…</span></div>
     </div>
 
     <div class="section">
@@ -771,20 +779,27 @@ async function loadPool() {
 function renderPool() {
   const tbody = document.getElementById('pool-rows');
   if (poolTasks.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Pool is empty. Either Zoho hasn't synced any tasks yet, or none have the "Designing" tag.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--muted); padding:24px;">Pool is empty. Either Zoho hasn't synced any tasks yet, or none have the "Designing" tag.</td></tr>`;
     document.getElementById('pool-summary').textContent = '';
     document.getElementById('btn-bulk-active').disabled = true;
     return;
   }
-  tbody.innerHTML = poolTasks.map(t => `<tr data-id="${t.id}">
-    <td><input type="checkbox" class="pool-check" data-id="${t.id}" /></td>
-    <td><code>${escapeHtml(t.zoho_task_id || '—')}</code></td>
-    <td><strong>${escapeHtml(t.task_name)}</strong></td>
-    <td><span class="pill lav">${escapeHtml(t.project_name || '—')}</span></td>
-    <td>${escapeHtml(t.zoho_priority_at_import || '—')}</td>
-    <td><span class="source-badge ${t.source}">${t.source.toUpperCase()}</span></td>
-    <td><button class="btn" onclick="movePoolToActive(${t.id})">→ Active</button></td>
-  </tr>`).join('');
+  tbody.innerHTML = poolTasks.map(t => {
+    const owner = t.zoho_owner_raw || null;
+    const ownerCell = owner
+      ? `<span class="pill warn" title="Zoho owner — not mapped to any designer yet. Pair them in Settings to auto-promote.">${escapeHtml(owner.full_name || owner.name || owner.id)}</span>`
+      : `<span class="muted" style="font-size:11px;">—</span>`;
+    return `<tr data-id="${t.id}">
+      <td><input type="checkbox" class="pool-check" data-id="${t.id}" /></td>
+      <td><code>${escapeHtml(t.zoho_task_id || '—')}</code></td>
+      <td><strong>${escapeHtml(t.task_name)}</strong></td>
+      <td><span class="pill lav">${escapeHtml(t.project_name || '—')}</span></td>
+      <td>${ownerCell}</td>
+      <td>${escapeHtml(t.zoho_priority_at_import || '—')}</td>
+      <td><span class="source-badge ${t.source}">${t.source.toUpperCase()}</span></td>
+      <td><button class="btn" onclick="movePoolToActive(${t.id})">→ Active</button></td>
+    </tr>`;
+  }).join('');
   document.getElementById('pool-summary').textContent = `${poolTasks.length} task${poolTasks.length===1?'':'s'} in pool`;
   bindPoolChecks();
 }
@@ -927,10 +942,16 @@ function renderSliceRow(task, slice, idx, isFirst) {
     const subText = task.source === 'zoho'
       ? `${escapeHtml(task.zoho_task_id || '')} · ${escapeHtml(task.zoho_priority_at_import || 'Normal')} priority`
       : `Created by ${escapeHtml(task.created_by || 'unknown')}`;
+    // If Zoho gave us an owner that maps to a designer, pre-select them in the
+    // dropdown. The assigner can still override by picking a different one.
+    const preselectId = task.suggested_designer_id || '';
+    const suggestedBadge = task.suggested_designer_name
+      ? `<div style="font-size:10px; color:var(--muted); margin-top:2px;">↳ from Zoho owner: <strong>${escapeHtml(task.suggested_designer_name)}</strong></div>`
+      : '';
     return `<tr class="assign-row ${task.source === 'adhoc' ? 'adhoc' : ''}" data-task-id="${taskId}" data-slice-idx="${idx}">
       <td><div class="task-title"><span class="source-badge ${task.source}">${task.source.toUpperCase()}</span>${escapeHtml(task.task_name)}</div><div class="task-id">${subText}</div></td>
       <td>${projectCell}${tagCell}</td>
-      <td><select class="inline-input" data-field="designer" data-task-id="${taskId}">${designerOptionsHTML('')}</select></td>
+      <td><select class="inline-input" data-field="designer" data-task-id="${taskId}">${designerOptionsHTML(preselectId)}</select>${suggestedBadge}</td>
       <td><input class="inline-input" type="date" value="${slice.date}" data-field="date" data-task-id="${taskId}" data-slice-idx="${idx}" /></td>
       <td><select class="inline-input" data-field="duration" data-task-id="${taskId}" data-slice-idx="${idx}">${durationOptionsHTML(slice.minutes || 0)}</select></td>
       <td>
@@ -1376,26 +1397,33 @@ async function populateDesignerSelect(id) {
 }
 
 // =========================== Settings — designers ===========================
+let designerList = [];
 async function loadDesigners() {
   try {
-    const list = await api('GET', '/api/designers');
-    renderDesigners(list);
+    designerList = await api('GET', '/api/designers');
+    renderDesigners(designerList);
+    loadZohoUsers();
   } catch (e) { toast('Designers failed: ' + e.message, 'error'); }
 }
 function renderDesigners(list) {
   const tbody = document.getElementById('designer-rows');
   if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:24px;">No designers yet. Add one below.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">No designers yet. Add one below.</td></tr>`;
     return;
   }
   tbody.innerHTML = list.map(d => {
     const url = `${API}/d/${d.url_token}`;
     const fullUrl = location.origin + url;
     const status = d.is_active ? `<span class="pill green">Active</span>` : `<span class="pill red">Inactive</span>`;
+    const zohoCell = d.zoho_user_id
+      ? `<span class="pill lav">${escapeHtml(d.zoho_user_name || d.zoho_user_id)}</span>
+         <button class="icon-btn" onclick="unmapZohoUser(${d.id}, '${escapeAttr(d.name)}')" title="Unpair Zoho user">✕</button>`
+      : `<span class="muted" style="font-size:12px;">— not paired —</span>`;
     return `<tr data-id="${d.id}">
       <td>${escapeHtml(d.name)}</td>
       <td><code>${escapeHtml(url)}</code><button class="copy-btn" onclick="copyToClipboard('${fullUrl}', this)">copy</button></td>
       <td>••••</td>
+      <td>${zohoCell}</td>
       <td>${status}</td>
       <td style="text-align:right;">
         <button class="icon-btn" onclick="startEdit(${d.id})">✎ Edit</button>
@@ -1404,6 +1432,80 @@ function renderDesigners(list) {
       </td>
     </tr>`;
   }).join('');
+}
+
+// --- Zoho user mapping ---
+async function loadZohoUsers() {
+  const wrap = document.getElementById('zoho-users-wrap');
+  if (!wrap) return;
+  try {
+    const list = await api('GET', '/api/zoho/users');
+    renderZohoUsers(list);
+  } catch (e) {
+    wrap.innerHTML = `<div class="muted" style="font-size:12px;">Could not load Zoho users: ${escapeHtml(e.message)}</div>`;
+  }
+}
+function renderZohoUsers(list) {
+  const wrap = document.getElementById('zoho-users-wrap');
+  if (!list || list.length === 0) {
+    wrap.innerHTML = `<div class="muted" style="font-size:12px;">No Zoho task owners seen yet. Run a Zoho sync first.</div>`;
+    return;
+  }
+  const designerOpts = designerList.filter(d => d.is_active)
+    .map(d => `<option value="${d.id}">${escapeHtml(d.name)}</option>`).join('');
+  wrap.innerHTML = `<table class="std">
+    <thead><tr>
+      <th>Zoho user</th>
+      <th>Tasks (pool / active total)</th>
+      <th>Paired designer</th>
+      <th style="width: 280px;"></th>
+    </tr></thead>
+    <tbody>${list.map(u => {
+      const isMapped = !!u.mapped_designer_id;
+      const label = u.zoho_user_name || u.zoho_user_id;
+      const subtitle = u.zoho_email ? `<div class="muted" style="font-size:11px;">${escapeHtml(u.zoho_email)}</div>` : '';
+      const mappedCell = isMapped
+        ? `<span class="pill green">${escapeHtml(u.mapped_designer_name)}</span>`
+        : `<span class="muted" style="font-size:12px;">— unmapped —</span>`;
+      const actionCell = isMapped
+        ? `<button class="icon-btn" onclick="unmapZohoUser(${u.mapped_designer_id}, '${escapeAttr(u.mapped_designer_name)}')">Unpair</button>`
+        : `<select class="inline-input" id="zu-pick-${escapeAttr(u.zoho_user_id)}" style="width: 180px;">
+              <option value="">— pick designer —</option>${designerOpts}
+           </select>
+           <button class="btn" onclick="mapZohoUser('${escapeAttr(u.zoho_user_id)}', '${escapeAttr(label)}')">Pair</button>`;
+      return `<tr>
+        <td><strong>${escapeHtml(label)}</strong>${subtitle}<div class="muted" style="font-size:10px;">id: <code>${escapeHtml(u.zoho_user_id)}</code></div></td>
+        <td>${u.pool_count} / ${u.active_count} / ${u.task_count}</td>
+        <td>${mappedCell}</td>
+        <td>${actionCell}</td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+async function mapZohoUser(zohoUserId, zohoUserName) {
+  const sel = document.getElementById('zu-pick-' + zohoUserId);
+  if (!sel) return;
+  const designerId = parseInt(sel.value || '0');
+  if (!designerId) return toast('Pick a designer first', 'error');
+  try {
+    const r = await api('PATCH', '/api/designers/' + designerId,
+      { zoho_user_id: zohoUserId, zoho_user_name: zohoUserName, actor: getActor() });
+    let msg = 'Paired';
+    if (r.promoted) msg += ` · ${r.promoted} pool task${r.promoted===1?'':'s'} promoted to Active`;
+    toast(msg, 'success');
+    loadDesigners();
+    if (currentTab() === 'pool') loadPool();
+    if (currentTab() === 'active') loadActiveTasks();
+  } catch (e) { toast(e.message, 'error'); }
+}
+async function unmapZohoUser(designerId, designerName) {
+  if (!confirm(`Unpair Zoho user from "${designerName}"?\n\nFuture Zoho imports owned by this user will land in Pool again. Existing tasks are NOT touched.`)) return;
+  try {
+    await api('PATCH', '/api/designers/' + designerId,
+      { zoho_user_id: '', zoho_user_name: '', actor: getActor() });
+    toast('Unpaired', 'success');
+    loadDesigners();
+  } catch (e) { toast(e.message, 'error'); }
 }
 document.getElementById('btn-add').addEventListener('click', addDesigner);
 document.getElementById('new-pin').addEventListener('keydown', (e) => { if (e.key === 'Enter') addDesigner(); });
