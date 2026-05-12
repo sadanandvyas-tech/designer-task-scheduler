@@ -6,14 +6,24 @@
 -- 1. designers — manual roster managed in Settings tab
 -- ===========================================================================
 CREATE TABLE IF NOT EXISTS designers (
-  id           SERIAL PRIMARY KEY,
-  name         TEXT NOT NULL UNIQUE,
-  url_token    TEXT NOT NULL UNIQUE,                  -- random opaque, used in /d/<token>
-  pin_hash     TEXT NOT NULL,                         -- bcrypt of the 4-digit PIN
-  is_active    BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id              SERIAL PRIMARY KEY,
+  name            TEXT NOT NULL UNIQUE,
+  url_token       TEXT NOT NULL UNIQUE,                  -- random opaque, used in /d/<token>
+  pin_hash        TEXT NOT NULL,                         -- bcrypt of the 4-digit PIN
+  is_active       BOOLEAN NOT NULL DEFAULT TRUE,
+  zoho_user_id    TEXT,                                  -- maps designer ↔ Zoho user (for owner→designer)
+  zoho_user_name  TEXT,                                  -- display name from Zoho at mapping time
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Idempotent column adds (for installs that pre-date the zoho_user_id feature)
+ALTER TABLE designers ADD COLUMN IF NOT EXISTS zoho_user_id   TEXT;
+ALTER TABLE designers ADD COLUMN IF NOT EXISTS zoho_user_name TEXT;
+
+-- One Zoho user can map to at most one designer
+CREATE UNIQUE INDEX IF NOT EXISTS uq_designers_zoho_user_id
+  ON designers (zoho_user_id) WHERE zoho_user_id IS NOT NULL;
 
 CREATE OR REPLACE FUNCTION designers_set_updated_at() RETURNS TRIGGER AS $$
 BEGIN NEW.updated_at = NOW(); RETURN NEW; END;
@@ -48,10 +58,13 @@ CREATE TABLE IF NOT EXISTS tasks (
   zoho_task_id             TEXT,
   zoho_status_at_import    TEXT,
   zoho_priority_at_import  TEXT,
+  zoho_owner_raw           JSONB,                       -- raw {id, name, email, full_name} from Zoho task owner
   -- Common
   task_name                TEXT NOT NULL,
   project_name             TEXT,                       -- Zoho: project name; Ad-hoc: free text context (nullable)
   tag_id                   INT REFERENCES tags(id) ON DELETE SET NULL,  -- ad-hoc tasks usually carry a tag
+  suggested_designer_id    INT REFERENCES designers(id) ON DELETE SET NULL,
+                                                       -- pre-filled when a Zoho-mapped owner is detected on import
   state                    TEXT NOT NULL DEFAULT 'pool'
                              CHECK (state IN ('pool','active','assigned','done','cancelled')),
   cancel_reason            TEXT,
@@ -65,6 +78,13 @@ CREATE TABLE IF NOT EXISTS tasks (
     CHECK ((state = 'cancelled' AND cancel_reason IS NOT NULL AND length(trim(cancel_reason)) > 0)
         OR state <> 'cancelled')
 );
+
+-- Idempotent column adds (for installs that pre-date these features)
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS zoho_owner_raw        JSONB;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS suggested_designer_id INT REFERENCES designers(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_tasks_suggested_designer
+  ON tasks (suggested_designer_id) WHERE suggested_designer_id IS NOT NULL;
 
 -- Composite uniqueness only matters for Zoho-sourced tasks. Use a partial index.
 CREATE UNIQUE INDEX IF NOT EXISTS uq_tasks_zoho_key
