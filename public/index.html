@@ -440,7 +440,16 @@
     <h2 class="page-title">Active — Quick Assign</h2>
     <div class="page-sub">Pick designer + date + duration inline on each row, then click Assign. Add ad-hoc tasks (not from Zoho) directly here when a designer has free time.</div>
 
-    <div class="add-row adhoc">
+    <div style="display:flex; align-items:center; gap:10px; margin: 14px 0 0; flex-wrap:wrap;">
+      <span class="muted" style="font-size:13px;">Filter by designer:</span>
+      <select id="active-filter-designer" style="min-width: 260px; padding: 6px 10px; border:1px solid var(--line); border-radius:6px;">
+        <option value="">All designers</option>
+      </select>
+      <button class="btn ghost" id="active-filter-clear" style="display:none;">Clear filter</button>
+      <span class="muted" id="active-filter-summary" style="font-size:12px;"></span>
+    </div>
+
+    <div class="add-row adhoc" style="margin-top: 12px;">
       <strong>+ Add ad-hoc task</strong>
       <input class="grow" id="adhoc-name" type="text" placeholder="Task name (e.g. Fix sponsor banner spacing)" maxlength="200" />
       <select id="adhoc-tag"><option value="">— Tag (optional) —</option></select>
@@ -877,6 +886,8 @@ function refreshDesignerOptions() {
   document.querySelectorAll('.assign-row select[data-field="designer"]').forEach(sel => {
     const cur = sel.value; sel.innerHTML = designerOptionsHTML(cur);
   });
+  // Availability tells us which designers exist — refresh the filter list too
+  if (typeof populateActiveFilter === 'function') populateActiveFilter();
 }
 
 let cachedTags = null;
@@ -889,6 +900,9 @@ async function loadTagsForAdhoc() {
   } catch (e) { /* silent */ }
 }
 
+// Active-tab filter: '' (all), 'none' (no suggested designer), or a designer id (string).
+let activeFilterDesignerId = localStorage.getItem('dts_active_filter') || '';
+
 async function loadActiveTasks() {
   try {
     activeTasks = await api('GET', '/api/tasks?state=active');
@@ -896,25 +910,101 @@ async function loadActiveTasks() {
     document.getElementById('badge-active').textContent = activeTasks.length;
   } catch (e) { toast('Failed to load active: ' + e.message, 'error'); }
 }
+
+function getFilteredActiveTasks() {
+  if (activeFilterDesignerId === '') return activeTasks;
+  if (activeFilterDesignerId === 'none') return activeTasks.filter(t => !t.suggested_designer_id);
+  return activeTasks.filter(t => String(t.suggested_designer_id || '') === String(activeFilterDesignerId));
+}
+
+function populateActiveFilter() {
+  const sel = document.getElementById('active-filter-designer');
+  if (!sel) return;
+  // Count tasks per designer (and a bucket for "no suggested designer")
+  const counts = {}; let noneCount = 0;
+  for (const t of activeTasks) {
+    if (t.suggested_designer_id) {
+      counts[t.suggested_designer_id] = (counts[t.suggested_designer_id] || 0) + 1;
+    } else {
+      noneCount++;
+    }
+  }
+  // Build option list — show all active designers, plus designers who appear in tasks even if they're inactive.
+  const seen = new Set();
+  const opts = [`<option value="">All designers (${activeTasks.length})</option>`];
+  for (const d of (availability.designers || [])) {
+    if (!d.is_active && !counts[d.id]) continue;
+    seen.add(String(d.id));
+    const c = counts[d.id] || 0;
+    const sel = String(activeFilterDesignerId) === String(d.id) ? 'selected' : '';
+    opts.push(`<option value="${d.id}" ${sel}>${escapeHtml(d.name)} (${c})</option>`);
+  }
+  // Tasks may reference designers not in the current availability list (edge case).
+  for (const t of activeTasks) {
+    if (t.suggested_designer_id && !seen.has(String(t.suggested_designer_id))) {
+      const c = counts[t.suggested_designer_id] || 0;
+      const sel = String(activeFilterDesignerId) === String(t.suggested_designer_id) ? 'selected' : '';
+      opts.push(`<option value="${t.suggested_designer_id}" ${sel}>${escapeHtml(t.suggested_designer_name || ('Designer #' + t.suggested_designer_id))} (${c})</option>`);
+      seen.add(String(t.suggested_designer_id));
+    }
+  }
+  if (noneCount > 0) {
+    const sel = activeFilterDesignerId === 'none' ? 'selected' : '';
+    opts.push(`<option value="none" ${sel}>— No designer suggested (${noneCount})</option>`);
+  }
+  sel.innerHTML = opts.join('');
+  document.getElementById('active-filter-clear').style.display = activeFilterDesignerId ? '' : 'none';
+}
+
 function renderActiveTasks() {
   const tbody = document.getElementById('active-rows');
   const summary = document.getElementById('active-summary');
+  const filterSummary = document.getElementById('active-filter-summary');
+
+  populateActiveFilter();
+
+  const filtered = getFilteredActiveTasks();
   if (activeTasks.length === 0) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">No active tasks. Add an ad-hoc task above, or move tasks from the Pool.</td></tr>`;
-    summary.textContent = ''; return;
+    summary.textContent = ''; if (filterSummary) filterSummary.textContent = ''; return;
+  }
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">No tasks match this filter. <a href="#" onclick="setActiveFilter(''); return false;">Clear filter</a> to see all ${activeTasks.length} active tasks.</td></tr>`;
+    summary.textContent = '';
+    if (filterSummary) filterSummary.textContent = `Showing 0 of ${activeTasks.length}`;
+    return;
   }
   let html = '';
-  for (const t of activeTasks) {
+  for (const t of filtered) {
     if (!taskSlices[t.id]) taskSlices[t.id] = [{ date: todayISO(), minutes: 0 }];
     const slices = taskSlices[t.id];
     slices.forEach((slice, idx) => { html += renderSliceRow(t, slice, idx, idx === 0); });
   }
   tbody.innerHTML = html;
-  const counts = activeTasks.reduce((acc, t) => { acc[t.source] = (acc[t.source] || 0) + 1; return acc; }, {});
-  summary.textContent = `${activeTasks.length} task${activeTasks.length===1?'':'s'}` +
+  const counts = filtered.reduce((acc, t) => { acc[t.source] = (acc[t.source] || 0) + 1; return acc; }, {});
+  summary.textContent = `${filtered.length} task${filtered.length===1?'':'s'}` +
     (counts.zoho ? ` · ${counts.zoho} from Zoho` : '') +
     (counts.adhoc ? ` · ${counts.adhoc} ad-hoc` : '');
+  if (filterSummary) {
+    filterSummary.textContent = activeFilterDesignerId
+      ? `Showing ${filtered.length} of ${activeTasks.length}`
+      : '';
+  }
 }
+
+function setActiveFilter(value) {
+  activeFilterDesignerId = value || '';
+  if (activeFilterDesignerId) localStorage.setItem('dts_active_filter', activeFilterDesignerId);
+  else localStorage.removeItem('dts_active_filter');
+  renderActiveTasks();
+}
+// Wire up filter dropdown
+document.getElementById('active-filter-designer').addEventListener('change', (e) => {
+  setActiveFilter(e.target.value);
+});
+document.getElementById('active-filter-clear').addEventListener('click', () => {
+  setActiveFilter('');
+});
 // Build the Duration dropdown options: 15m, 30m, 45m, 1h, 1h 15m, ..., 8h.
 function durationOptionsHTML(currentMinutes) {
   const out = ['<option value="0">— duration —</option>'];
