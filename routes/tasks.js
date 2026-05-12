@@ -46,10 +46,13 @@ module.exports = function (router, db) {
         `SELECT t.id, t.source, t.task_name, t.project_name,
                 t.zoho_project_id, t.zoho_task_id,
                 t.zoho_status_at_import, t.zoho_priority_at_import,
+                t.zoho_owner_raw,
                 t.tag_id, tg.name AS tag_name, tg.color_hex AS tag_color,
+                t.suggested_designer_id, d.name AS suggested_designer_name,
                 t.state, t.imported_at, t.created_by
          FROM tasks t
          LEFT JOIN tags tg ON tg.id = t.tag_id
+         LEFT JOIN designers d ON d.id = t.suggested_designer_id
          WHERE t.state = $1
          ORDER BY t.imported_at ASC`,
         [state]
