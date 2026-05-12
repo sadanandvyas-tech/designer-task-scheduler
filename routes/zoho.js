@@ -164,8 +164,25 @@ async function fetchDesigningTasks(db) {
   });
 }
 
+// Extract a normalized owner object from a Zoho task payload.
+// Zoho returns owners in either `details.owners[]` or top-level `owners[]`;
+// names vary by edition. Returns null if no owner is set.
+function extractOwner(z) {
+  const arr = (z.details && z.details.owners) || z.owners || [];
+  if (!Array.isArray(arr) || arr.length === 0) return null;
+  const o = arr[0]; // We use the first owner only — our model is one-task-one-designer.
+  const id = String(o.id || o.zpuid || o.user_id || '').trim();
+  if (!id) return null;
+  return {
+    id,
+    name: o.name || o.full_name || o.first_name || '',
+    full_name: o.full_name || o.name || '',
+    email: o.email || '',
+  };
+}
+
 async function importTasks(db, zohoTasks, triggeredBy = 'cron') {
-  let inserted = 0, skipped = 0;
+  let inserted = 0, skipped = 0, promoted = 0;
   for (const z of zohoTasks) {
     // Use the augmented _project_id we set during fetch (most reliable),
     // falling back to nested z.project.id or z.project_id.
@@ -177,32 +194,85 @@ async function importTasks(db, zohoTasks, triggeredBy = 'cron') {
     const taskName    = z.name || z.title || '(unnamed)';
     const status      = z.status?.name || z.status_name || null;
     const priority    = z.priority || null;
+    const owner       = extractOwner(z);
+    const ownerJson   = owner ? JSON.stringify(owner) : null;
+
+    // Resolve owner → designer mapping (if any)
+    let suggestedDesignerId = null;
+    if (owner) {
+      const m = await db.query(
+        `SELECT id FROM designers WHERE zoho_user_id = $1 AND is_active = TRUE LIMIT 1`,
+        [owner.id]
+      );
+      if (m.rows[0]) suggestedDesignerId = m.rows[0].id;
+    }
+
+    // Initial state: if we resolved a mapping, the task lands directly in 'active'
+    // with the designer pre-filled. Otherwise it goes to the Pool as before.
+    const initialState = suggestedDesignerId ? 'active' : 'pool';
 
     try {
-      const r = await db.query(
-        `INSERT INTO tasks (source, zoho_project_id, zoho_task_id, task_name, project_name,
-                            zoho_status_at_import, zoho_priority_at_import, state, created_by)
-         VALUES ('zoho', $1, $2, $3, $4, $5, $6, 'pool', 'zoho-sync')
-         ON CONFLICT (zoho_project_id, zoho_task_id) WHERE source = 'zoho' DO NOTHING
-         RETURNING id`,
-        [projectId, taskId, taskName, projectName, status, priority]
+      // Find existing task (if any) so we can decide insert vs update behavior.
+      const existing = await db.query(
+        `SELECT id, state, suggested_designer_id FROM tasks
+         WHERE source = 'zoho' AND zoho_project_id = $1 AND zoho_task_id = $2 LIMIT 1`,
+        [projectId, taskId]
       );
-      if (r.rowCount > 0) {
+
+      if (existing.rows.length === 0) {
+        const ins = await db.query(
+          `INSERT INTO tasks (source, zoho_project_id, zoho_task_id, task_name, project_name,
+                              zoho_status_at_import, zoho_priority_at_import,
+                              zoho_owner_raw, suggested_designer_id, state, created_by)
+           VALUES ('zoho', $1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9, 'zoho-sync')
+           RETURNING id`,
+          [projectId, taskId, taskName, projectName, status, priority,
+           ownerJson, suggestedDesignerId, initialState]
+        );
         inserted++;
         await db.query(
           `INSERT INTO audit_log (task_id, actor, action, after_json)
-           VALUES ($1, 'zoho-sync', 'imported', $2)`,
-          [r.rows[0].id, JSON.stringify({ projectId, taskId, taskName })]
+           VALUES ($1, 'zoho-sync', $2, $3)`,
+          [ins.rows[0].id,
+           suggestedDesignerId ? 'imported_with_owner' : 'imported',
+           JSON.stringify({ projectId, taskId, taskName, owner, suggestedDesignerId, state: initialState })]
         );
       } else {
-        skipped++;
+        // Existing task — refresh owner info. If it's still in Pool AND the owner
+        // now maps to a designer, promote it. Tasks already in active/assigned/done/
+        // cancelled keep their state (manual moves win over Zoho re-sync).
+        const row = existing.rows[0];
+        const upd = await db.query(
+          `UPDATE tasks
+             SET zoho_owner_raw       = $1::jsonb,
+                 suggested_designer_id = CASE
+                   WHEN state = 'pool' AND $2::int IS NOT NULL THEN $2::int
+                   ELSE suggested_designer_id
+                 END,
+                 state = CASE
+                   WHEN state = 'pool' AND $2::int IS NOT NULL THEN 'active'
+                   ELSE state
+                 END
+           WHERE id = $3
+           RETURNING state, suggested_designer_id`,
+          [ownerJson, suggestedDesignerId, row.id]
+        );
+        if (row.state === 'pool' && upd.rows[0].state === 'active') {
+          promoted++;
+          await db.query(
+            `INSERT INTO audit_log (task_id, actor, action, after_json)
+             VALUES ($1, 'zoho-sync', 'auto_promoted_from_pool', $2)`,
+            [row.id, JSON.stringify({ owner, suggestedDesignerId })]
+          );
+        }
+        skipped++; // counted as "not newly inserted" for sync_log compatibility
       }
     } catch (e) {
       // Continue on individual row errors; we log to sync_log at the end.
       skipped++;
     }
   }
-  return { inserted, skipped };
+  return { inserted, skipped, promoted };
 }
 
 async function runSync(db, triggeredBy = 'cron') {
@@ -222,14 +292,15 @@ async function runSync(db, triggeredBy = 'cron') {
   const syncId = logRow[0].id;
   try {
     const tasks = await fetchDesigningTasks(db);
-    const { inserted, skipped } = await importTasks(db, tasks, triggeredBy);
+    const { inserted, skipped, promoted } = await importTasks(db, tasks, triggeredBy);
+    if (promoted) console.log(`[zoho-sync] auto-promoted ${promoted} pool task(s) to active via owner mapping`);
     await db.query(
       `UPDATE sync_log SET finished_at = NOW(), tasks_seen = $1, tasks_new = $2, tasks_skipped = $3, ok = TRUE
        WHERE id = $4`,
       [tasks.length, inserted, skipped, syncId]
     );
     await setSetting(db, 'last_sync_at', new Date().toISOString());
-    return { ok: true, tasks_seen: tasks.length, tasks_new: inserted, tasks_skipped: skipped };
+    return { ok: true, tasks_seen: tasks.length, tasks_new: inserted, tasks_skipped: skipped, promoted };
   } catch (err) {
     await db.query(
       `UPDATE sync_log SET finished_at = NOW(), ok = FALSE, error_message = $1 WHERE id = $2`,
@@ -375,6 +446,39 @@ module.exports = function (router, db) {
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
+  });
+
+  // ---- list distinct Zoho users seen across imported tasks ----
+  // Used by the Settings mapping UI: shows each Zoho owner + task count +
+  // whether they're paired to a designer. Aggregated from tasks.zoho_owner_raw.
+  router.get('/api/zoho/users', async (_req, res) => {
+    try {
+      const { rows } = await db.query(`
+        WITH owners AS (
+          SELECT zoho_owner_raw->>'id'        AS zoho_user_id,
+                 zoho_owner_raw->>'name'      AS zoho_user_name,
+                 zoho_owner_raw->>'full_name' AS zoho_full_name,
+                 zoho_owner_raw->>'email'     AS zoho_email,
+                 state
+          FROM tasks
+          WHERE source = 'zoho' AND zoho_owner_raw IS NOT NULL
+        )
+        SELECT o.zoho_user_id,
+               MAX(COALESCE(o.zoho_full_name, o.zoho_user_name)) AS zoho_user_name,
+               MAX(o.zoho_email) AS zoho_email,
+               COUNT(*)::int       AS task_count,
+               COUNT(*) FILTER (WHERE o.state = 'pool')::int     AS pool_count,
+               COUNT(*) FILTER (WHERE o.state = 'active')::int   AS active_count,
+               d.id   AS mapped_designer_id,
+               d.name AS mapped_designer_name
+        FROM owners o
+        LEFT JOIN designers d ON d.zoho_user_id = o.zoho_user_id
+        WHERE o.zoho_user_id IS NOT NULL AND o.zoho_user_id <> ''
+        GROUP BY o.zoho_user_id, d.id, d.name
+        ORDER BY (d.id IS NULL) DESC, task_count DESC
+      `);
+      res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
   });
 
   // ---- clear all Zoho-sourced tasks in pool state (for re-import) ----
