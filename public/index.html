@@ -884,7 +884,16 @@ function designerOptionsHTML(selectedId) {
 }
 function refreshDesignerOptions() {
   document.querySelectorAll('.assign-row select[data-field="designer"]').forEach(sel => {
-    const cur = sel.value; sel.innerHTML = designerOptionsHTML(cur);
+    let cur = sel.value;
+    // First render may have happened before /api/availability resolved, in which
+    // case the matching <option> didn't exist and sel.value is empty. Fall back
+    // to the task's suggested_designer_id so the Zoho-owner pre-fill survives.
+    if (!cur) {
+      const taskId = parseInt(sel.dataset.taskId);
+      const task = activeTasks.find(t => t.id === taskId);
+      if (task && task.suggested_designer_id) cur = String(task.suggested_designer_id);
+    }
+    sel.innerHTML = designerOptionsHTML(cur);
   });
   // Availability tells us which designers exist — refresh the filter list too
   if (typeof populateActiveFilter === 'function') populateActiveFilter();
