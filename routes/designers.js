@@ -10,7 +10,7 @@ module.exports = function (router, db) {
   router.get('/api/designers', async (_req, res) => {
     try {
       const { rows } = await db.query(
-        `SELECT id, name, url_token, is_active, created_at
+        `SELECT id, name, url_token, is_active, zoho_user_id, zoho_user_name, created_at
          FROM designers
          ORDER BY is_active DESC, name`
       );
@@ -47,7 +47,7 @@ module.exports = function (router, db) {
   router.patch('/api/designers/:id', async (req, res) => {
     try {
       const { id } = req.params;
-      const { name, pin, is_active } = req.body || {};
+      const { name, pin, is_active, zoho_user_id, zoho_user_name } = req.body || {};
 
       const sets = [];
       const vals = [];
@@ -68,20 +68,63 @@ module.exports = function (router, db) {
         vals.push(!!is_active);
         sets.push(`is_active = $${vals.length}`);
       }
+      // Zoho user pairing — empty string clears the mapping (unpair)
+      if (zoho_user_id !== undefined) {
+        const v = String(zoho_user_id || '').trim() || null;
+        vals.push(v);
+        sets.push(`zoho_user_id = $${vals.length}`);
+      }
+      if (zoho_user_name !== undefined) {
+        const v = String(zoho_user_name || '').trim() || null;
+        vals.push(v);
+        sets.push(`zoho_user_name = $${vals.length}`);
+      }
       if (sets.length === 0) return res.status(400).json({ error: 'nothing to update' });
 
       vals.push(id);
       const { rows } = await db.query(
         `UPDATE designers SET ${sets.join(', ')}
          WHERE id = $${vals.length}
-         RETURNING id, name, url_token, is_active, created_at`,
+         RETURNING id, name, url_token, is_active, zoho_user_id, zoho_user_name, created_at`,
         vals
       );
       if (rows.length === 0) return res.status(404).json({ error: 'designer not found' });
-      res.json(rows[0]);
+
+      // Self-healing: if we just SET a zoho_user_id, retro-promote any pool
+      // tasks owned by that Zoho user — assigner doesn't have to wait for the
+      // next hourly sync to see them pre-filled.
+      let promoted = 0;
+      const newZohoId = rows[0].zoho_user_id;
+      if (zoho_user_id !== undefined && newZohoId) {
+        const prom = await db.query(
+          `UPDATE tasks
+              SET state = 'active', suggested_designer_id = $1
+            WHERE source = 'zoho'
+              AND state = 'pool'
+              AND zoho_owner_raw->>'id' = $2
+           RETURNING id`,
+          [rows[0].id, newZohoId]
+        );
+        promoted = prom.rowCount;
+        for (const t of prom.rows) {
+          await db.query(
+            `INSERT INTO audit_log (task_id, actor, action, after_json)
+             VALUES ($1, $2, 'auto_promoted_via_mapping', $3)`,
+            [t.id, (req.body?.actor || 'unknown').toString().trim(),
+             JSON.stringify({ designer_id: rows[0].id, zoho_user_id: newZohoId })]
+          );
+        }
+      }
+
+      res.json({ ...rows[0], promoted });
     } catch (err) {
-      if (err.code === '23505')
+      if (err.code === '23505') {
+        // Could be either name collision or zoho_user_id collision — try to disambiguate.
+        const detail = (err.detail || '').toLowerCase();
+        if (detail.includes('zoho_user_id'))
+          return res.status(409).json({ error: 'That Zoho user is already paired to another designer.' });
         return res.status(409).json({ error: 'A designer with that name already exists' });
+      }
       res.status(500).json({ error: err.message });
     }
   });
