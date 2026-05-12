@@ -10,6 +10,7 @@ module.exports = function (router, db) {
         SELECT t.id, t.source, t.task_name, t.project_name,
                t.zoho_project_id, t.zoho_task_id,
                t.zoho_status_at_import, t.zoho_priority_at_import,
+               t.zoho_owner_raw,
                t.tag_id, tg.name AS tag_name, tg.color_hex AS tag_color,
                t.imported_at, t.created_by
         FROM tasks t
