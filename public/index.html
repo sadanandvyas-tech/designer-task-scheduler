@@ -827,7 +827,10 @@ function renderPool() {
       <td>${ownerCell}</td>
       <td>${escapeHtml(t.zoho_priority_at_import || '—')}</td>
       <td><span class="source-badge ${t.source}">${t.source.toUpperCase()}</span></td>
-      <td><button class="btn" onclick="movePoolToActive(${t.id})">→ Active</button></td>
+      <td style="white-space:nowrap;">
+        <button class="btn" onclick="movePoolToActive(${t.id})">→ Active</button>
+        <button class="btn danger" onclick="deletePoolTask(${t.id})" title="Delete this task from the Pool">🗑 Delete</button>
+      </td>
     </tr>`;
   }).join('');
   document.getElementById('pool-summary').textContent = `${poolTasks.length} task${poolTasks.length===1?'':'s'} in pool`;
@@ -856,6 +859,16 @@ async function movePoolToActive(id) {
   try {
     await api('POST', `/api/tasks/${id}/move-to-active`, { actor: getActor() });
     toast('Moved to Active', 'success');
+    loadPool();
+  } catch (e) { toast(e.message, 'error'); }
+}
+async function deletePoolTask(id) {
+  const t = poolTasks.find(x => x.id === id);
+  const name = t ? t.task_name : 'this task';
+  if (!confirm(`Delete "${name}" from the Pool?\n\nThis permanently removes it and cannot be undone.`)) return;
+  try {
+    await api('POST', `/api/tasks/${id}/delete`, { actor: getActor() });
+    toast('Task deleted', 'success');
     loadPool();
   } catch (e) { toast(e.message, 'error'); }
 }
