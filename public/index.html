@@ -431,7 +431,10 @@
 
     <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
       <span class="muted" id="pool-summary"></span>
-      <button class="btn" id="btn-bulk-active" disabled>Move selected to Active</button>
+      <div style="display:flex; gap:8px;">
+        <button class="btn danger" id="btn-bulk-delete" disabled>Delete selected</button>
+        <button class="btn" id="btn-bulk-active" disabled>Move selected to Active</button>
+      </div>
     </div>
   </section>
 
@@ -693,6 +696,18 @@ async function api(method, path, body) {
 function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
 function escapeAttr(s) { return escapeHtml(s).replace(/'/g, '&#39;'); }
 function todayISO() { return new Date().toISOString().slice(0, 10); }
+// Human-readable "X ago" for an ISO timestamp string. Returns '' for null/undefined.
+function fmtRelativeTime(iso) {
+  if (!iso) return '';
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return '';
+  const diffSec = Math.max(0, Math.floor((Date.now() - t) / 1000));
+  if (diffSec < 60)        return 'just now';
+  if (diffSec < 3600)      return Math.floor(diffSec / 60)  + 'm ago';
+  if (diffSec < 86400)     return Math.floor(diffSec / 3600) + 'h ago';
+  if (diffSec < 7 * 86400) return Math.floor(diffSec / 86400) + 'd ago';
+  return new Date(iso).toISOString().slice(0, 10); // fall back to date
+}
 function lastNDays(n) { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); }
 function firstOfMonth() { const d = new Date(); d.setDate(1); return d.toISOString().slice(0, 10); }
 function fmtMinutes(m) {
@@ -791,6 +806,7 @@ function renderPool() {
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--muted); padding:24px;">Pool is empty. Either Zoho hasn't synced any tasks yet, or none have the "Designing" tag.</td></tr>`;
     document.getElementById('pool-summary').textContent = '';
     document.getElementById('btn-bulk-active').disabled = true;
+    document.getElementById('btn-bulk-delete').disabled = true;
     return;
   }
   tbody.innerHTML = poolTasks.map(t => {
@@ -798,10 +814,15 @@ function renderPool() {
     const ownerCell = owner
       ? `<span class="pill warn" title="Zoho owner — not mapped to any designer yet. Pair them in Settings to auto-promote.">${escapeHtml(owner.full_name || owner.name || owner.id)}</span>`
       : `<span class="muted" style="font-size:11px;">—</span>`;
+    // "Returned manually" badge — surfaces tasks that an assigner sent back from
+    // Active/Assigned and that Zoho sync will NOT auto-promote.
+    const returnedBadge = t.sent_back_at
+      ? ` <span class="pill yellow" title="Sent back to Pool by an assigner. Zoho sync will not auto-promote this task — move it to Active manually when ready.">↩ Returned manually · ${escapeHtml(fmtRelativeTime(t.sent_back_at))}</span>`
+      : '';
     return `<tr data-id="${t.id}">
       <td><input type="checkbox" class="pool-check" data-id="${t.id}" /></td>
       <td><code>${escapeHtml(t.zoho_task_id || '—')}</code></td>
-      <td><strong>${escapeHtml(t.task_name)}</strong></td>
+      <td><strong>${escapeHtml(t.task_name)}</strong>${returnedBadge}</td>
       <td><span class="pill lav">${escapeHtml(t.project_name || '—')}</span></td>
       <td>${ownerCell}</td>
       <td>${escapeHtml(t.zoho_priority_at_import || '—')}</td>
@@ -827,6 +848,9 @@ function updateBulkBtn() {
   const btn = document.getElementById('btn-bulk-active');
   btn.disabled = checked === 0;
   btn.textContent = checked === 0 ? 'Move selected to Active' : `Move ${checked} to Active`;
+  const del = document.getElementById('btn-bulk-delete');
+  del.disabled = checked === 0;
+  del.textContent = checked === 0 ? 'Delete selected' : `Delete ${checked}`;
 }
 async function movePoolToActive(id) {
   try {
@@ -843,6 +867,18 @@ document.getElementById('btn-bulk-active').addEventListener('click', async () =>
     toast(`Moved ${r.moved} to Active`, 'success');
     loadPool();
   } catch (e) { toast(e.message, 'error'); }
+});
+document.getElementById('btn-bulk-delete').addEventListener('click', async () => {
+  const ids = Array.from(document.querySelectorAll('.pool-check:checked')).map(c => parseInt(c.dataset.id));
+  if (ids.length === 0) return;
+  if (!confirm(`Delete ${ids.length} task${ids.length===1?'':'s'} from the Pool?\n\nThis permanently removes ${ids.length===1?'it':'them'}. Tasks already in Active/Assigned/Done are not affected. This cannot be undone.`)) return;
+  const btn = document.getElementById('btn-bulk-delete');
+  btn.disabled = true;
+  try {
+    const r = await api('POST', '/api/tasks/bulk-delete', { ids, actor: getActor() });
+    toast(`Deleted ${r.deleted} task${r.deleted===1?'':'s'} from Pool`, 'success');
+    loadPool();
+  } catch (e) { toast(e.message, 'error'); btn.disabled = false; }
 });
 document.getElementById('btn-pool-refresh').addEventListener('click', () => {
   loadPool();
