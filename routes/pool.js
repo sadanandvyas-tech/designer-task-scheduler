@@ -74,6 +74,28 @@ module.exports = function (router, db) {
     } catch (err) { res.status(500).json({ error: err.message }); }
   });
 
+  // Single delete of a pool task. Scoped to state = 'pool' so an
+  // Active/Assigned/Done task can never be deleted through this path.
+  router.post('/api/tasks/:id/delete', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const actor = (req.body?.actor || 'unknown').trim();
+      const { rows } = await db.query(
+        `DELETE FROM tasks WHERE id = $1 AND state = 'pool' RETURNING id, task_name`,
+        [id]
+      );
+      if (rows.length === 0) {
+        return res.status(409).json({ error: 'task is not in pool state' });
+      }
+      await db.query(
+        `INSERT INTO audit_log (actor, action, after_json)
+         VALUES ($1, 'deleted_pool_tasks', $2)`,
+        [actor, JSON.stringify({ deleted: 1, ids: [rows[0].id] })]
+      );
+      res.json({ ok: true, deleted: 1, id: rows[0].id });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+  });
+
   // Bulk delete pool tasks. Scoped to state = 'pool' so an Active/Assigned/Done
   // task can never be deleted through this path. assignments + audit_log rows
   // for any deleted task are removed automatically (ON DELETE CASCADE), but a
