@@ -409,15 +409,23 @@ module.exports = function (router, db) {
       const { rows: deleted } = await client.query(
         `DELETE FROM assignments WHERE task_id = $1 RETURNING *`, [id]
       );
+      // Mark the task as manually sent back. While sent_back_at is non-NULL,
+      // Zoho sync + designer-mapping auto-promote logic MUST NOT flip this
+      // task back to 'active' — that flag is cleared only on explicit
+      // move-to-active (routes/pool.js).
       await client.query(
-        `UPDATE tasks SET state = 'pool', completed_at = NULL WHERE id = $1`, [id]
+        `UPDATE tasks
+            SET state         = 'pool',
+                completed_at  = NULL,
+                sent_back_at  = NOW()
+          WHERE id = $1`, [id]
       );
 
       await client.query(
         `INSERT INTO audit_log (task_id, actor, action, reason, before_json, after_json)
          VALUES ($1, $2, 'sent_back_to_pool', $3, $4, $5)`,
         [id, actor, reason || null, JSON.stringify(tRows[0]),
-         JSON.stringify({ deleted_assignments: deleted.length })]
+         JSON.stringify({ deleted_assignments: deleted.length, sent_back_at: 'NOW()' })]
       );
 
       await client.query('COMMIT'); txOpen = false;
