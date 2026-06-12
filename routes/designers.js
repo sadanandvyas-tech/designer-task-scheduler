@@ -93,6 +93,9 @@ module.exports = function (router, db) {
       // Self-healing: if we just SET a zoho_user_id, retro-promote any pool
       // tasks owned by that Zoho user — assigner doesn't have to wait for the
       // next hourly sync to see them pre-filled.
+      // Tasks the assigner manually returned to Pool (sent_back_at IS NOT NULL)
+      // are intentionally excluded — they must stay in Pool until the assigner
+      // explicitly moves them, mirroring the Zoho sync guard.
       let promoted = 0;
       const newZohoId = rows[0].zoho_user_id;
       if (zoho_user_id !== undefined && newZohoId) {
@@ -101,6 +104,7 @@ module.exports = function (router, db) {
               SET state = 'active', suggested_designer_id = $1
             WHERE source = 'zoho'
               AND state = 'pool'
+              AND sent_back_at IS NULL
               AND zoho_owner_raw->>'id' = $2
            RETURNING id`,
           [rows[0].id, newZohoId]
