@@ -70,6 +70,9 @@ CREATE TABLE IF NOT EXISTS tasks (
   cancel_reason            TEXT,
   imported_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   completed_at             TIMESTAMPTZ,
+  sent_back_at             TIMESTAMPTZ,                -- set when an assigner manually sends a task back to Pool;
+                                                       -- while non-NULL, Zoho sync + designer-mapping must NOT auto-promote.
+                                                       -- cleared on explicit move-to-active.
   created_by               TEXT,                       -- assigner name (ad-hoc); 'zoho-sync' (zoho)
   CONSTRAINT chk_tasks_zoho_keys
     CHECK ((source = 'zoho' AND zoho_project_id IS NOT NULL AND zoho_task_id IS NOT NULL)
@@ -82,6 +85,7 @@ CREATE TABLE IF NOT EXISTS tasks (
 -- Idempotent column adds (for installs that pre-date these features)
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS zoho_owner_raw        JSONB;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS suggested_designer_id INT REFERENCES designers(id) ON DELETE SET NULL;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS sent_back_at          TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS idx_tasks_suggested_designer
   ON tasks (suggested_designer_id) WHERE suggested_designer_id IS NOT NULL;
