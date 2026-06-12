@@ -239,18 +239,21 @@ async function importTasks(db, zohoTasks, triggeredBy = 'cron') {
         );
       } else {
         // Existing task — refresh owner info. If it's still in Pool AND the owner
-        // now maps to a designer, promote it. Tasks already in active/assigned/done/
-        // cancelled keep their state (manual moves win over Zoho re-sync).
+        // now maps to a designer AND it has NOT been manually sent back, promote it.
+        // Tasks already in active/assigned/done/cancelled keep their state
+        // (manual moves win over Zoho re-sync). A non-NULL sent_back_at means the
+        // assigner explicitly put the task back in Pool and it must stay there
+        // until they explicitly move it to Active.
         const row = existing.rows[0];
         const upd = await db.query(
           `UPDATE tasks
              SET zoho_owner_raw       = $1::jsonb,
                  suggested_designer_id = CASE
-                   WHEN state = 'pool' AND $2::int IS NOT NULL THEN $2::int
+                   WHEN state = 'pool' AND sent_back_at IS NULL AND $2::int IS NOT NULL THEN $2::int
                    ELSE suggested_designer_id
                  END,
                  state = CASE
-                   WHEN state = 'pool' AND $2::int IS NOT NULL THEN 'active'
+                   WHEN state = 'pool' AND sent_back_at IS NULL AND $2::int IS NOT NULL THEN 'active'
                    ELSE state
                  END
            WHERE id = $3
