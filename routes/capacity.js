@@ -318,21 +318,23 @@ module.exports = function (router, db) {
         'SELECT id, name FROM designers WHERE id = $1 AND is_active', [new_designer_id]
       );
       if (dRows.length === 0) {
-        await client.query('ROLLBACK'); txOpen = false; client.release();
+        await client.query('ROLLBACK'); txOpen = false;
         return res.status(400).json({ error: 'new designer not found or inactive' });
       }
 
       // Get all assignments for this task
       const { rows: aRows } = await client.query(
-        'SELECT * FROM assignments WHERE task_id = $1 ORDER BY assigned_date', [id]
+        `SELECT id, task_id, designer_id, assigned_date::text AS assigned_date,
+                minutes, is_done, done_at, created_at
+         FROM assignments WHERE task_id = $1 ORDER BY assigned_date`, [id]
       );
       if (aRows.length === 0) {
-        await client.query('ROLLBACK'); txOpen = false; client.release();
+        await client.query('ROLLBACK'); txOpen = false;
         return res.status(409).json({ error: 'task has no assignments to reassign' });
       }
       const oldDesignerId = aRows[0].designer_id;
       if (oldDesignerId === new_designer_id) {
-        await client.query('ROLLBACK'); txOpen = false; client.release();
+        await client.query('ROLLBACK'); txOpen = false;
         return res.status(409).json({ error: 'task is already assigned to that designer' });
       }
 
@@ -352,7 +354,7 @@ module.exports = function (router, db) {
         }
       }
       if (overloads.length > 0 && !force) {
-        await client.query('ROLLBACK'); txOpen = false; client.release();
+        await client.query('ROLLBACK'); txOpen = false;
         return res.status(422).json({ error: 'overload', designer_name: dRows[0].name, overloads });
       }
 
